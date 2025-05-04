@@ -9,6 +9,7 @@ import {
   aiInsights, type AiInsight, type InsertAiInsight,
   healthConsultations, type HealthConsultation, type InsertHealthConsultation
 } from "@shared/schema";
+import { encryptData, decryptData, logAuditEvent, maskSensitiveData } from "./security";
 
 export interface IStorage {
   // User methods
@@ -68,7 +69,7 @@ export interface IStorage {
   generateDemoData(userId: number): Promise<void>;
 }
 
-import { encryptData, decryptData, logAuditEvent, maskSensitiveData } from './security';
+// Security functions are already imported above
 
 /**
  * HIPAA-compliant in-memory storage implementation
