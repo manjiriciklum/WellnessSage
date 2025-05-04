@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DashboardLayout } from '@/components/dashboard/layout';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -7,7 +7,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Heart } from 'lucide-react';
+import { Loader2, Heart, ArrowLeft } from 'lucide-react';
 
 type HealthConsultation = {
   id: number;
@@ -85,7 +85,16 @@ export default function HealthCoachPage() {
   };
 
   return (
-    <DashboardLayout>
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-800">
+      <header className="bg-white dark:bg-neutral-700 p-4 flex items-center border-b border-neutral-100 dark:border-neutral-600 shadow-sm">
+        <Link href="/">
+          <Button variant="ghost" className="mr-2">
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back to Dashboard
+          </Button>
+        </Link>
+        <h1 className="text-xl font-headings font-semibold text-neutral-800 dark:text-white ml-4">Health Coach</h1>
+      </header>
       <div className="p-4 md:p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="shadow-sm md:col-span-2">
@@ -206,6 +215,6 @@ export default function HealthCoachPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
