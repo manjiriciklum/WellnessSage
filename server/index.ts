@@ -1,10 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { auditLogMiddleware, requireTLS, sessionTimeout } from "./security";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// HIPAA-compliant security middleware
+app.use(requireTLS); // Ensure TLS/SSL in production
+app.use(auditLogMiddleware); // Log all API access for HIPAA compliance
+app.use(sessionTimeout(15)); // 15-minute session timeout (HIPAA requirement)
 
 app.use((req, res, next) => {
   const start = Date.now();

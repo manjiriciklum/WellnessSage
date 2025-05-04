@@ -68,6 +68,12 @@ export interface IStorage {
   generateDemoData(userId: number): Promise<void>;
 }
 
+import { encryptData, decryptData, logAuditEvent, maskSensitiveData } from './security';
+
+/**
+ * HIPAA-compliant in-memory storage implementation
+ * Encrypts sensitive health data at rest
+ */
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private healthData: Map<number, HealthData>;
@@ -134,9 +140,36 @@ export class MemStorage implements IStorage {
 
   // Health Data methods
   async getHealthDataByUserId(userId: number): Promise<HealthData[]> {
-    return Array.from(this.healthData.values()).filter(
+    // Get all health data for this user
+    const encryptedData = Array.from(this.healthData.values()).filter(
       (data) => data.userId === userId
     );
+    
+    // Log audit event for HIPAA compliance
+    logAuditEvent(userId, 'view', 'healthData', 'multiple', `User ${userId} accessed their health data`);
+    
+    // Decrypt health metrics for client-side use
+    return encryptedData.map(record => {
+      // Check if data needs to be decrypted
+      if (record.healthMetrics && typeof record.healthMetrics === 'object' && record.healthMetrics.isEncrypted) {
+        try {
+          const { data, iv, authTag } = record.healthMetrics as any;
+          const decryptedMetrics = decryptData(data, iv, authTag);
+          
+          // Return record with decrypted data
+          return {
+            ...record,
+            healthMetrics: JSON.parse(decryptedMetrics),
+            _decrypted: true // Add flag to indicate this was decrypted
+          };
+        } catch (error) {
+          console.error('Error decrypting health data:', error);
+          return record; // Return encrypted in case of error
+        }
+      }
+      
+      return record;
+    });
   }
 
   async getLatestHealthData(userId: number): Promise<HealthData | undefined> {
@@ -153,8 +186,31 @@ export class MemStorage implements IStorage {
 
   async createHealthData(insertData: InsertHealthData): Promise<HealthData> {
     const id = this.healthDataId++;
-    const data: HealthData = { ...insertData, id };
+    
+    // Encrypt sensitive health metrics for HIPAA compliance
+    let healthMetrics = typeof insertData.healthMetrics === 'string' 
+      ? insertData.healthMetrics 
+      : JSON.stringify(insertData.healthMetrics);
+      
+    const { encryptedData, iv, authTag } = encryptData(healthMetrics);
+    
+    // Store encrypted data with metadata
+    const encryptedHealthData = {
+      ...insertData,
+      healthMetrics: {
+        data: encryptedData,
+        iv,
+        authTag,
+        isEncrypted: true
+      }
+    };
+    
+    const data: HealthData = { ...encryptedHealthData, id };
     this.healthData.set(id, data);
+    
+    // Log audit event for HIPAA compliance
+    logAuditEvent(insertData.userId, 'create', 'healthData', id, 'Created new health data record');
+    
     return data;
   }
 
@@ -344,23 +400,137 @@ export class MemStorage implements IStorage {
 
   // Health Coach Consultation methods
   async getHealthConsultationsByUserId(userId: number): Promise<HealthConsultation[]> {
-    return Array.from(this.healthConsultations.values()).filter(
+    // Get encrypted consultations
+    const encryptedConsultations = Array.from(this.healthConsultations.values()).filter(
       (consultation) => consultation.userId === userId
     );
+    
+    // Log audit event for HIPAA compliance
+    logAuditEvent(userId, 'view', 'healthConsultation', 'multiple', `User ${userId} accessed their health consultations`);
+    
+    // Decrypt each consultation
+    return encryptedConsultations.map(consultation => {
+      let decryptedConsultation = { ...consultation };
+      
+      // Decrypt symptoms if encrypted
+      if (consultation.symptoms && typeof consultation.symptoms === 'object' && consultation.symptoms.isEncrypted) {
+        try {
+          const { data, iv, authTag } = consultation.symptoms as any;
+          decryptedConsultation.symptoms = decryptData(data, iv, authTag);
+        } catch (error) {
+          console.error('Error decrypting symptoms:', error);
+        }
+      }
+      
+      // Decrypt analysis if encrypted
+      if (consultation.analysis && typeof consultation.analysis === 'object' && consultation.analysis.isEncrypted) {
+        try {
+          const { data, iv, authTag } = consultation.analysis as any;
+          decryptedConsultation.analysis = decryptData(data, iv, authTag);
+        } catch (error) {
+          console.error('Error decrypting analysis:', error);
+        }
+      }
+      
+      // Decrypt recommendations if encrypted
+      if (consultation.recommendations && typeof consultation.recommendations === 'object' && consultation.recommendations.isEncrypted) {
+        try {
+          const { data, iv, authTag } = consultation.recommendations as any;
+          decryptedConsultation.recommendations = decryptData(data, iv, authTag);
+        } catch (error) {
+          console.error('Error decrypting recommendations:', error);
+        }
+      }
+      
+      return decryptedConsultation;
+    });
   }
 
   async getHealthConsultation(id: number): Promise<HealthConsultation | undefined> {
-    return this.healthConsultations.get(id);
+    const consultation = this.healthConsultations.get(id);
+    if (!consultation) return undefined;
+    
+    // Log audit event for HIPAA compliance
+    logAuditEvent(consultation.userId, 'view', 'healthConsultation', id, `User accessed consultation #${id}`);
+    
+    // Decrypt the consultation - similar to the batch function
+    let decryptedConsultation = { ...consultation };
+    
+    // Decrypt symptoms if encrypted
+    if (consultation.symptoms && typeof consultation.symptoms === 'object' && consultation.symptoms.isEncrypted) {
+      try {
+        const { data, iv, authTag } = consultation.symptoms as any;
+        decryptedConsultation.symptoms = decryptData(data, iv, authTag);
+      } catch (error) {
+        console.error('Error decrypting symptoms:', error);
+      }
+    }
+    
+    // Decrypt analysis if encrypted
+    if (consultation.analysis && typeof consultation.analysis === 'object' && consultation.analysis.isEncrypted) {
+      try {
+        const { data, iv, authTag } = consultation.analysis as any;
+        decryptedConsultation.analysis = decryptData(data, iv, authTag);
+      } catch (error) {
+        console.error('Error decrypting analysis:', error);
+      }
+    }
+    
+    // Decrypt recommendations if encrypted
+    if (consultation.recommendations && typeof consultation.recommendations === 'object' && consultation.recommendations.isEncrypted) {
+      try {
+        const { data, iv, authTag } = consultation.recommendations as any;
+        decryptedConsultation.recommendations = decryptData(data, iv, authTag);
+      } catch (error) {
+        console.error('Error decrypting recommendations:', error);
+      }
+    }
+    
+    return decryptedConsultation;
   }
 
   async createHealthConsultation(insertConsultation: InsertHealthConsultation): Promise<HealthConsultation> {
     const id = this.healthConsultationId++;
+    
+    // Encrypt sensitive medical symptoms and analysis
+    const { encryptedData: encryptedSymptoms, iv: symptomsIv, authTag: symptomsAuthTag } = encryptData(insertConsultation.symptoms);
+    const { encryptedData: encryptedAnalysis, iv: analysisIv, authTag: analysisAuthTag } = encryptData(insertConsultation.analysis);
+    const { encryptedData: encryptedRecommendations, iv: recIv, authTag: recAuthTag } = encryptData(insertConsultation.recommendations);
+    
+    // Create encrypted consultation
+    const encryptedConsultation = {
+      ...insertConsultation,
+      symptoms: {
+        data: encryptedSymptoms,
+        iv: symptomsIv,
+        authTag: symptomsAuthTag,
+        isEncrypted: true
+      },
+      analysis: {
+        data: encryptedAnalysis,
+        iv: analysisIv,
+        authTag: analysisAuthTag,
+        isEncrypted: true
+      },
+      recommendations: {
+        data: encryptedRecommendations,
+        iv: recIv,
+        authTag: recAuthTag,
+        isEncrypted: true
+      }
+    };
+    
     const consultation: HealthConsultation = { 
-      ...insertConsultation, 
+      ...encryptedConsultation, 
       id,
       createdAt: new Date() 
     };
+    
     this.healthConsultations.set(id, consultation);
+    
+    // Log audit event for HIPAA compliance
+    logAuditEvent(insertConsultation.userId, 'create', 'healthConsultation', id, 'Created new health consultation');
+    
     return consultation;
   }
 
