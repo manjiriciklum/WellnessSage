@@ -53,6 +53,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <Stethoscope size={18} className="mr-3" />
     },
     {
+      name: 'Health Coach',
+      path: '/health-coach',
+      icon: <Brain size={18} className="mr-3" />
+    },
+    {
       name: 'Alerts & Reminders',
       path: '/alerts-reminders',
       icon: <Bell size={18} className="mr-3" />
