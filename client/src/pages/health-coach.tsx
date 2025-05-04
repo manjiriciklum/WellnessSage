@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { DashboardLayout } from '@/components/dashboard/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -7,7 +6,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Heart, Activity } from 'lucide-react';
 
 type HealthConsultation = {
   id: number;
@@ -85,99 +84,128 @@ export default function HealthCoachPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="flex flex-col gap-6 p-4 md:p-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Health Coach AI</h1>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Describe Your Symptoms</CardTitle>
-            <CardDescription>
-              Tell us what you're experiencing and our AI will analyze your symptoms and provide recommendations.
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent>
+    <div className="p-4 md:p-6">
+      <h1 className="text-2xl font-headings font-bold mb-6">Health Coach AI</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card className="shadow-sm md:col-span-2">
+          <CardContent className="p-5">
+            <form onSubmit={handleSubmit}>
+              <h3 className="text-lg font-medium mb-3">Describe Your Symptoms</h3>
               <Textarea
                 placeholder="Describe your symptoms in detail (e.g., I've had a headache for the past 3 days, concentrated on the right side of my head. It gets worse when I stand up quickly.)"
                 value={symptoms}
                 onChange={(e) => setSymptoms(e.target.value)}
                 rows={5}
-                className="w-full resize-none"
+                className="w-full resize-none mb-4"
               />
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="text-sm text-gray-500 mb-4">
                 This is not a substitute for professional medical advice. If you're experiencing severe symptoms, please seek immediate medical attention.
               </p>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  'Analyze Symptoms'
-                )}
-              </Button>
-            </CardFooter>
-          </form>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    'Analyze Symptoms'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
         </Card>
-
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Previous Consultations</h2>
-          {isLoadingConsultations ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
+        
+        <Card className="shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Heart size={18} className="text-neutral-500" />
+              <h3 className="font-medium">Health Tips</h3>
             </div>
-          ) : consultations && consultations.length > 0 ? (
-            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-              {[...consultations]
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .map((consultation) => (
-                  <Card key={consultation.id} className="overflow-hidden">
-                    <CardHeader>
-                      <div className="flex justify-between items-center">
-                        <div className="flex flex-col">
-                          <CardTitle className="text-lg">Consultation #{consultation.id}</CardTitle>
-                          <CardDescription>
-                            {new Date(consultation.createdAt).toLocaleString()}
-                          </CardDescription>
-                        </div>
-                        <Badge className={getSeverityColor(consultation.severity)}>
-                          {consultation.severity.charAt(0).toUpperCase() + consultation.severity.slice(1)} Severity
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <h3 className="font-medium text-sm text-gray-500">Symptoms Reported</h3>
-                        <p className="mt-1">{consultation.symptoms}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-sm text-gray-500">Analysis</h3>
-                        <p className="mt-1">{consultation.analysis}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-sm text-gray-500">Recommendations</h3>
-                        <p className="mt-1">{consultation.recommendations}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8">
-                <p className="text-gray-500 mb-2">No consultations yet</p>
-                <p className="text-sm text-gray-400">Describe your symptoms above to get started</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-start gap-2">
+                <div className="rounded-full bg-green-100 p-1 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                </div>
+                <span>Be specific about when symptoms started</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="rounded-full bg-green-100 p-1 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                </div>
+                <span>Mention if symptoms are constant or intermittent</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="rounded-full bg-green-100 p-1 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                </div>
+                <span>Include any relevant medical history</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="rounded-full bg-green-100 p-1 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                </div>
+                <span>Describe any self-treatment you've tried</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
-    </DashboardLayout>
+      
+      <div className="mt-8 mb-4">
+        <h2 className="text-xl font-medium mb-4">Previous Consultations</h2>
+        
+        {isLoadingConsultations ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : consultations && consultations.length > 0 ? (
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {[...consultations]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map((consultation) => (
+                <Card key={consultation.id} className="overflow-hidden shadow-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <CardTitle className="text-lg">Consultation #{consultation.id}</CardTitle>
+                        <CardDescription>
+                          {new Date(consultation.createdAt).toLocaleString()}
+                        </CardDescription>
+                      </div>
+                      <Badge className={getSeverityColor(consultation.severity)}>
+                        {consultation.severity.charAt(0).toUpperCase() + consultation.severity.slice(1)} Severity
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-2">
+                    <div>
+                      <h3 className="font-medium text-sm text-gray-500">Symptoms Reported</h3>
+                      <p className="mt-1 text-sm">{consultation.symptoms}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm text-gray-500">Analysis</h3>
+                      <p className="mt-1 text-sm">{consultation.analysis}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm text-gray-500">Recommendations</h3>
+                      <p className="mt-1 text-sm">{consultation.recommendations}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        ) : (
+          <Card className="shadow-sm">
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <p className="text-gray-500 mb-2">No consultations yet</p>
+              <p className="text-sm text-gray-400">Describe your symptoms above to get started</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
   );
 }
