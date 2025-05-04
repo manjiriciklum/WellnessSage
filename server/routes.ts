@@ -9,7 +9,8 @@ import {
   insertWellnessPlanSchema,
   insertReminderSchema,
   insertGoalSchema,
-  insertAiInsightSchema
+  insertAiInsightSchema,
+  insertHealthConsultationSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -224,6 +225,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "AI insight not found" });
     }
     return res.json(insight);
+  });
+
+  // Health Coach routes
+  app.get("/api/users/:userId/health-consultations", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const consultations = await storage.getHealthConsultationsByUserId(userId);
+    return res.json(consultations);
+  });
+
+  app.get("/api/health-consultations/:id", async (req, res) => {
+    const consultationId = parseInt(req.params.id);
+    const consultation = await storage.getHealthConsultation(consultationId);
+    if (!consultation) {
+      return res.status(404).json({ message: "Health consultation not found" });
+    }
+    return res.json(consultation);
+  });
+
+  app.post("/api/health-consultations", async (req, res) => {
+    try {
+      const validatedData = insertHealthConsultationSchema.parse(req.body);
+      const consultation = await storage.createHealthConsultation(validatedData);
+      return res.status(201).json(consultation);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid health consultation data" });
+    }
+  });
+
+  app.post("/api/health-coach/analyze-symptoms", async (req, res) => {
+    const symptomsSchema = z.object({
+      userId: z.number(),
+      symptoms: z.string()
+    });
+    
+    try {
+      const { userId, symptoms } = symptomsSchema.parse(req.body);
+      const analysis = await storage.analyzeSymptoms(userId, symptoms);
+      return res.json(analysis);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid symptom data" });
+    }
   });
 
   // For demo purposes, generate random health data

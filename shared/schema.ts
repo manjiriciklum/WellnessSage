@@ -207,3 +207,25 @@ export const insertAiInsightSchema = createInsertSchema(aiInsights).pick({
 
 export type InsertAiInsight = z.infer<typeof insertAiInsightSchema>;
 export type AiInsight = typeof aiInsights.$inferSelect;
+
+// Health Coach Consultation Model
+export const healthConsultations = pgTable("health_consultations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  symptoms: text("symptoms").notNull(),
+  analysis: text("analysis").notNull(),
+  recommendations: text("recommendations").notNull(),
+  severity: text("severity").notNull(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const insertHealthConsultationSchema = createInsertSchema(healthConsultations).pick({
+  userId: true,
+  symptoms: true,
+  analysis: true,
+  recommendations: true,
+  severity: true
+});
+
+export type InsertHealthConsultation = z.infer<typeof insertHealthConsultationSchema>;
+export type HealthConsultation = typeof healthConsultations.$inferSelect;

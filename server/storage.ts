@@ -6,7 +6,8 @@ import {
   doctors, type Doctor, type InsertDoctor,
   reminders, type Reminder, type InsertReminder,
   goals, type Goal, type InsertGoal,
-  aiInsights, type AiInsight, type InsertAiInsight
+  aiInsights, type AiInsight, type InsertAiInsight,
+  healthConsultations, type HealthConsultation, type InsertHealthConsultation
 } from "@shared/schema";
 
 export interface IStorage {
@@ -56,6 +57,12 @@ export interface IStorage {
   getAiInsight(id: number): Promise<AiInsight | undefined>;
   createAiInsight(insight: InsertAiInsight): Promise<AiInsight>;
   markAiInsightAsRead(id: number): Promise<AiInsight | undefined>;
+  
+  // Health Coach methods
+  getHealthConsultationsByUserId(userId: number): Promise<HealthConsultation[]>;
+  getHealthConsultation(id: number): Promise<HealthConsultation | undefined>;
+  createHealthConsultation(consultation: InsertHealthConsultation): Promise<HealthConsultation>;
+  analyzeSymptoms(userId: number, symptoms: string): Promise<HealthConsultation>;
 
   // Demo data generation
   generateDemoData(userId: number): Promise<void>;
@@ -70,6 +77,7 @@ export class MemStorage implements IStorage {
   private reminders: Map<number, Reminder>;
   private goals: Map<number, Goal>;
   private aiInsights: Map<number, AiInsight>;
+  private healthConsultations: Map<number, HealthConsultation>;
   
   private userId: number;
   private healthDataId: number;
@@ -79,6 +87,7 @@ export class MemStorage implements IStorage {
   private reminderId: number;
   private goalId: number;
   private aiInsightId: number;
+  private healthConsultationId: number;
 
   constructor() {
     this.users = new Map();
@@ -89,6 +98,7 @@ export class MemStorage implements IStorage {
     this.reminders = new Map();
     this.goals = new Map();
     this.aiInsights = new Map();
+    this.healthConsultations = new Map();
     
     this.userId = 1;
     this.healthDataId = 1;
@@ -98,6 +108,7 @@ export class MemStorage implements IStorage {
     this.reminderId = 1;
     this.goalId = 1;
     this.aiInsightId = 1;
+    this.healthConsultationId = 1;
 
     // Initialize with demo data
     this.initializeDemoData();
@@ -331,6 +342,101 @@ export class MemStorage implements IStorage {
     return updatedInsight;
   }
 
+  // Health Coach Consultation methods
+  async getHealthConsultationsByUserId(userId: number): Promise<HealthConsultation[]> {
+    return Array.from(this.healthConsultations.values()).filter(
+      (consultation) => consultation.userId === userId
+    );
+  }
+
+  async getHealthConsultation(id: number): Promise<HealthConsultation | undefined> {
+    return this.healthConsultations.get(id);
+  }
+
+  async createHealthConsultation(insertConsultation: InsertHealthConsultation): Promise<HealthConsultation> {
+    const id = this.healthConsultationId++;
+    const consultation: HealthConsultation = { 
+      ...insertConsultation, 
+      id,
+      createdAt: new Date() 
+    };
+    this.healthConsultations.set(id, consultation);
+    return consultation;
+  }
+
+  async analyzeSymptoms(userId: number, symptoms: string): Promise<HealthConsultation> {
+    // Since we don't have access to ChatGPT API directly, we'll use predefined responses
+    // based on common symptoms patterns
+    let analysis = '';
+    let recommendations = '';
+    let severity = 'low';
+
+    const symptomsLower = symptoms.toLowerCase();
+    
+    if (symptomsLower.includes('headache') || symptomsLower.includes('head pain')) {
+      if (symptomsLower.includes('severe') || symptomsLower.includes('worst')) {
+        analysis = 'Your symptoms may indicate a severe headache, possibly a migraine or tension headache.';
+        recommendations = 'Rest in a dark, quiet room. Stay hydrated and consider over-the-counter pain relievers. If this is the worst headache of your life or came on suddenly, please seek emergency care immediately.';
+        severity = 'medium';
+      } else {
+        analysis = 'You appear to be experiencing a mild to moderate headache.';
+        recommendations = 'Try resting, staying hydrated, and over-the-counter pain relievers if needed. Consider tracking triggers like stress, sleep patterns, or certain foods.';
+        severity = 'low';
+      }
+    } else if (symptomsLower.includes('fever') || symptomsLower.includes('temperature')) {
+      if (symptomsLower.includes('high') || symptomsLower.includes('103') || symptomsLower.includes('104')) {
+        analysis = 'You appear to be experiencing a high fever, which could indicate an infection or inflammatory condition.';
+        recommendations = 'Stay hydrated, rest, and take fever-reducing medication if appropriate. If fever persists above 103°F (39.4°C) for adults or is accompanied by severe symptoms, seek medical attention promptly.';
+        severity = 'high';
+      } else {
+        analysis = 'You appear to be experiencing a mild fever, which is often a sign that your body is fighting an infection.';
+        recommendations = 'Rest, stay hydrated, and monitor your temperature. Over-the-counter fever reducers can help manage symptoms. If fever persists for more than 3 days, consult a healthcare provider.';
+        severity = 'medium';
+      }
+    } else if (symptomsLower.includes('cough')) {
+      if (symptomsLower.includes('blood') || symptomsLower.includes('breathing') || symptomsLower.includes('breath')) {
+        analysis = 'A cough with blood or breathing difficulties could indicate a serious respiratory condition.';
+        recommendations = 'Please seek immediate medical attention. These symptoms require proper evaluation by a healthcare professional.';
+        severity = 'high';
+      } else {
+        analysis = 'You appear to have a common cough, which could be due to a viral infection, allergies, or irritants.';
+        recommendations = 'Stay hydrated, use honey or lozenges to soothe your throat, and consider over-the-counter cough suppressants for nighttime relief. If the cough persists for more than 2 weeks, consult a healthcare provider.';
+        severity = 'low';
+      }
+    } else if (symptomsLower.includes('stomach') || symptomsLower.includes('nausea') || symptomsLower.includes('vomiting')) {
+      analysis = 'Your symptoms suggest gastrointestinal distress, which could be due to a virus, food poisoning, or digestive issues.';
+      recommendations = 'Stay hydrated with clear fluids, eat bland foods if tolerated, and rest. If symptoms persist for more than 2 days or are severe, consult a healthcare provider.';
+      severity = 'medium';
+    } else if (symptomsLower.includes('rash') || symptomsLower.includes('skin') || symptomsLower.includes('itchy')) {
+      analysis = 'You appear to be experiencing a skin reaction or rash, which could be due to an allergy, irritant, or other skin condition.';
+      recommendations = 'Avoid scratching, use cool compresses for relief, and consider over-the-counter antihistamines or hydrocortisone cream. If the rash spreads, blisters, or is accompanied by other concerning symptoms, consult a healthcare provider.';
+      severity = 'low';
+    } else if (symptomsLower.includes('dizzy') || symptomsLower.includes('dizziness') || symptomsLower.includes('vertigo')) {
+      analysis = 'Your dizziness could be related to inner ear issues, blood pressure changes, or other conditions affecting balance.';
+      recommendations = 'Sit or lie down when feeling dizzy, avoid sudden movements, and stay hydrated. If dizziness is severe or persistent, consult a healthcare provider to determine the underlying cause.';
+      severity = 'medium';
+    } else if (symptomsLower.includes('chest pain') || symptomsLower.includes('heart')) {
+      analysis = 'Chest pain requires immediate attention as it could indicate a cardiac issue.';
+      recommendations = 'Please seek emergency medical care immediately. Do not wait to see if symptoms improve.';
+      severity = 'high';
+    } else {
+      analysis = "Based on the symptoms you have described, you may be experiencing a common health issue.";
+      recommendations = 'Monitor your symptoms, rest, stay hydrated, and maintain a healthy diet. If symptoms persist or worsen, please consult with a healthcare provider for a proper diagnosis.';
+      severity = 'low';
+    }
+
+    // Create a consultation record
+    const consultationData: InsertHealthConsultation = {
+      userId,
+      symptoms,
+      analysis,
+      recommendations,
+      severity
+    };
+
+    return this.createHealthConsultation(consultationData);
+  }
+
   // Initialize demo data
   private initializeDemoData() {
     // Create demo user
@@ -413,7 +519,7 @@ export class MemStorage implements IStorage {
         deviceName: 'Smart Scale',
         deviceType: 'scale',
         isConnected: false,
-        lastSynced: undefined
+        lastSynced: null
       }
     ];
     
@@ -532,7 +638,7 @@ export class MemStorage implements IStorage {
         id: 3,
         userId: 1,
         title: 'Fitness Progress Alert',
-        description: 'Great job on your consistency! You\'ve met your step goal 5 days in a row. Consider increasing your daily step target by 10% to continue improving cardiovascular health.',
+        description: "Great job on your consistency! You've met your step goal 5 days in a row. Consider increasing your daily step target by 10% to continue improving cardiovascular health.",
         category: 'fitness',
         action: 'Adjust Goals',
         createdAt: new Date(),
