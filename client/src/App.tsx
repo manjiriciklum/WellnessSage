@@ -11,6 +11,7 @@ import ConnectedDevicesPage from "@/pages/connected-devices";
 import WellnessPlansPage from "@/pages/wellness-plans";
 import FindDoctorPage from "@/pages/find-doctor";
 import AlertsRemindersPage from "@/pages/alerts-reminders";
+import HealthCoachPage from "@/pages/health-coach";
 import SettingsPage from "@/pages/settings";
 import { DashboardLayout } from "@/components/dashboard/layout";
 
@@ -24,6 +25,7 @@ function Router() {
         <Route path="/wellness-plans" component={WellnessPlansPage} />
         <Route path="/find-doctor" component={FindDoctorPage} />
         <Route path="/alerts-reminders" component={AlertsRemindersPage} />
+        <Route path="/health-coach" component={HealthCoachPage} />
         <Route path="/settings" component={SettingsPage} />
         {/* Fallback to 404 */}
         <Route component={NotFound} />

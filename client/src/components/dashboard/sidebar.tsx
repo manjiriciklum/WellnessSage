@@ -10,7 +10,8 @@ import {
   Bell,
   Settings,
   Menu,
-  X
+  X,
+  Brain
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
