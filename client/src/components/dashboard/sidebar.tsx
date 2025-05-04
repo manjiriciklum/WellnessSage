@@ -77,7 +77,7 @@ export function Sidebar({ className }: SidebarProps) {
           {routes.map((route) => (
             <li key={route.path}>
               <Link href={route.path}>
-                <a
+                <div
                   className={cn(
                     "flex items-center px-4 py-3 text-sm rounded-md",
                     location === route.path
@@ -88,7 +88,7 @@ export function Sidebar({ className }: SidebarProps) {
                 >
                   {route.icon}
                   {route.name}
-                </a>
+                </div>
               </Link>
             </li>
           ))}
@@ -98,7 +98,7 @@ export function Sidebar({ className }: SidebarProps) {
       <div className="mt-auto p-4">
         <div className="flex items-center">
           <Avatar className="w-10 h-10 mr-3">
-            <AvatarImage src={user?.profileImage} alt={user?.firstName} />
+            <AvatarImage src={user?.profileImage || undefined} alt={user?.firstName || ''} />
             <AvatarFallback>{user?.firstName?.[0]}{user?.lastName?.[0]}</AvatarFallback>
           </Avatar>
           <div>
@@ -106,9 +106,9 @@ export function Sidebar({ className }: SidebarProps) {
               {user?.firstName} {user?.lastName}
             </h3>
             <Link href="/settings">
-              <a className="text-xs text-neutral-500 dark:text-neutral-300 hover:underline">
+              <div className="text-xs text-neutral-500 dark:text-neutral-300 hover:underline cursor-pointer">
                 View Profile
-              </a>
+              </div>
             </Link>
           </div>
         </div>
