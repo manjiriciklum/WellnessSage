@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { auditLogMiddleware, requireTLS } from "./security";
+import { analyzeHealthSymptoms, chatWithHealthAssistant } from "./openai";
 import {
   insertUserSchema,
   insertHealthDataSchema,
@@ -262,10 +263,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { userId, symptoms } = symptomsSchema.parse(req.body);
-      const analysis = await storage.analyzeSymptoms(userId, symptoms);
-      return res.json(analysis);
+      // Use the new OpenAI-powered analysis instead of the storage method
+      const analysis = await analyzeHealthSymptoms(userId, symptoms);
+      
+      // Save the consultation to database for HIPAA audit record
+      const consultation = await storage.createHealthConsultation({
+        userId,
+        symptoms,
+        analysis: analysis.analysis,
+        recommendations: analysis.recommendations,
+        severity: analysis.severity
+      });
+      
+      return res.json(consultation);
     } catch (error) {
-      return res.status(400).json({ message: "Invalid symptom data" });
+      console.error('Error analyzing symptoms:', error);
+      return res.status(400).json({ message: "Invalid symptom data or analysis error" });
+    }
+  });
+  
+  // New AI chatbot endpoint
+  app.post("/api/health-coach/chat", async (req, res) => {
+    const chatSchema = z.object({
+      userId: z.number(),
+      message: z.string()
+    });
+    
+    try {
+      const { userId, message } = chatSchema.parse(req.body);
+      const response = await chatWithHealthAssistant(userId, message);
+      return res.json({ response });
+    } catch (error) {
+      console.error('Error in chat:', error);
+      return res.status(400).json({ message: "Chat processing error" });
     }
   });
 
