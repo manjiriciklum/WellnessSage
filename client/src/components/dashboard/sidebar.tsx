@@ -98,7 +98,11 @@ export function Sidebar({ className }: SidebarProps) {
       <div className="mt-auto p-4">
         <div className="flex items-center">
           <Avatar className="w-10 h-10 mr-3">
-            <AvatarImage src={user?.profileImage || undefined} alt={user?.firstName || ''} />
+            {user?.profileImage ? (
+              <AvatarImage src={user.profileImage} alt={user?.firstName || ''} />
+            ) : (
+              <AvatarImage src="" alt={user?.firstName || ''} />
+            )}
             <AvatarFallback>{user?.firstName?.[0]}{user?.lastName?.[0]}</AvatarFallback>
           </Avatar>
           <div>
