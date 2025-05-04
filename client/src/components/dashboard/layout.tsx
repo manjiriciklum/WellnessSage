@@ -22,6 +22,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         return 'Wellness Plans';
       case '/find-doctor':
         return 'Find a Doctor';
+      case '/health-coach':
+        return 'Health Coach';
       case '/alerts-reminders':
         return 'Alerts & Reminders';
       case '/settings':
