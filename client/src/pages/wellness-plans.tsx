@@ -1,0 +1,150 @@
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Heart, Utensils, Moon, Brain } from 'lucide-react';
+
+export default function WellnessPlansPage() {
+  return (
+    <div className="p-4 md:p-6">
+      <h1 className="text-2xl font-headings font-bold mb-6">Wellness Plans</h1>
+      
+      <Tabs defaultValue="all">
+        <div className="flex justify-between items-center mb-4">
+          <TabsList>
+            <TabsTrigger value="all">All Plans</TabsTrigger>
+            <TabsTrigger value="fitness">Fitness</TabsTrigger>
+            <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
+            <TabsTrigger value="sleep">Sleep</TabsTrigger>
+            <TabsTrigger value="stress">Stress</TabsTrigger>
+          </TabsList>
+          <Button>Create New Plan</Button>
+        </div>
+        
+        <TabsContent value="all">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="shadow-sm border-t-4 border-t-primary">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Heart className="text-primary" size={18} />
+                  <CardTitle className="text-lg">Cardio Boost</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                  A 4-week program to improve cardiovascular health through progressive workouts.
+                </p>
+                <div className="flex justify-between text-sm mb-4">
+                  <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
+                  <span className="font-medium">65%</span>
+                </div>
+                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
+                  <div className="h-full bg-primary rounded-full" style={{ width: '65%' }}></div>
+                </div>
+                <Button variant="outline" className="w-full">View Plan</Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-sm border-t-4 border-t-secondary">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Utensils className="text-secondary" size={18} />
+                  <CardTitle className="text-lg">Balanced Nutrition</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                  A customized meal plan with protein-rich breakfasts and balanced macros throughout the day.
+                </p>
+                <div className="flex justify-between text-sm mb-4">
+                  <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
+                  <span className="font-medium">40%</span>
+                </div>
+                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
+                  <div className="h-full bg-secondary rounded-full" style={{ width: '40%' }}></div>
+                </div>
+                <Button variant="outline" className="w-full">View Plan</Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-sm border-t-4 border-t-accent">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Moon className="text-accent" size={18} />
+                  <CardTitle className="text-lg">Better Sleep Habits</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                  Improve sleep quality through consistent bedtime routines and environment optimization.
+                </p>
+                <div className="flex justify-between text-sm mb-4">
+                  <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
+                  <span className="font-medium">25%</span>
+                </div>
+                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
+                  <div className="h-full bg-accent rounded-full" style={{ width: '25%' }}></div>
+                </div>
+                <Button variant="outline" className="w-full">View Plan</Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-sm border-t-4 border-t-error">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Brain className="text-error" size={18} />
+                  <CardTitle className="text-lg">Stress Management</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                  Learn techniques to reduce stress through meditation, breathing exercises, and mindfulness.
+                </p>
+                <div className="flex justify-between text-sm mb-4">
+                  <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
+                  <span className="font-medium">10%</span>
+                </div>
+                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
+                  <div className="h-full bg-error rounded-full" style={{ width: '10%' }}></div>
+                </div>
+                <Button variant="outline" className="w-full">View Plan</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="fitness">
+          <div className="text-center p-8">
+            <p className="text-neutral-600 dark:text-neutral-200">
+              Fitness plans will appear here.
+            </p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="nutrition">
+          <div className="text-center p-8">
+            <p className="text-neutral-600 dark:text-neutral-200">
+              Nutrition plans will appear here.
+            </p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="sleep">
+          <div className="text-center p-8">
+            <p className="text-neutral-600 dark:text-neutral-200">
+              Sleep plans will appear here.
+            </p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="stress">
+          <div className="text-center p-8">
+            <p className="text-neutral-600 dark:text-neutral-200">
+              Stress management plans will appear here.
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
