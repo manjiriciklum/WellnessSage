@@ -80,16 +80,46 @@ export function ActionMenu() {
               </div>
               
               <div className="p-0">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start rounded-none border-0 h-auto p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/70"
-                >
-                  <Trash2 size={16} className="mr-2 text-red-500" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-medium">Delete Health Data</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Remove current health records</span>
-                  </div>
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start rounded-none border-0 h-auto p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/70"
+                      disabled={isDeletingHealthData || !healthData}
+                    >
+                      <Trash2 size={16} className="mr-2 text-red-500" />
+                      <div className="flex flex-col items-start">
+                        <span className="text-sm font-medium">Delete Health Data</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Remove current health records</span>
+                      </div>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="border-red-200 dark:border-red-900/30 shadow-lg">
+                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                      <Trash2 size={24} className="text-red-600 dark:text-red-400" />
+                    </div>
+                    <AlertDialogHeader className="pt-6">
+                      <AlertDialogTitle className="text-center text-red-600 dark:text-red-400 text-xl">
+                        Delete Health Data
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-center">
+                        This action cannot be undone. This will permanently delete your health data record
+                        and remove it from our servers.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-slate-200 bg-white hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={confirmDelete}
+                        className="bg-red-600 hover:bg-red-700 text-white border-transparent"
+                      >
+                        {isDeletingHealthData ? 'Deleting...' : 'Delete'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
                 <Button
                   variant="ghost"

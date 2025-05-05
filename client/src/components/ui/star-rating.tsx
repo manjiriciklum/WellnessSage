@@ -58,8 +58,8 @@ export function StarRating({
 
       {showValue && (
         <span className={cn('ml-1 text-neutral-500 dark:text-neutral-300', sizeClass[size])}>
-          {value.toFixed(1)}
-          {reviewCount !== undefined && ` (${reviewCount} reviews)`}
+          {safeValue.toFixed(1)}
+          {reviewCount !== undefined && reviewCount !== null && ` (${reviewCount} reviews)`}
         </span>
       )}
     </div>
