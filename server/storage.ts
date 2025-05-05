@@ -927,7 +927,20 @@ export class MemStorage implements IStorage {
         sleepQuality: 60 + Math.floor(Math.random() * 30),
         heartRate: 65 + Math.floor(Math.random() * 15),
         healthScore: 75 + Math.floor(Math.random() * 15),
-        stressLevel: 30 + Math.floor(Math.random() * 30)
+        stressLevel: 30 + Math.floor(Math.random() * 30),
+        healthMetrics: {
+          activityLevel: Math.floor(Math.random() * 3) + 2, // 2-4
+          stepsGoal: 10000,
+          caloriesGoal: 2500,
+          sleepGoal: 8,
+          hydrationGoal: 2000,
+          heartRateMin: 60 + Math.floor(Math.random() * 10) - 5,
+          heartRateMax: 120 + Math.floor(Math.random() * 40),
+          deepSleep: Math.round((Math.random() * 0.8 + 1.2) * 10) / 10, // 1.2-2.0
+          remSleep: Math.round((Math.random() * 0.7 + 1.1) * 10) / 10, // 1.1-1.8
+          bloodOxygen: 95 + Math.floor(Math.random() * 5),
+          temperature: Math.round((36.5 + (Math.random() * 0.8 - 0.3)) * 10) / 10
+        }
       };
       
       this.healthData.set(pastHealthData.id, pastHealthData);
