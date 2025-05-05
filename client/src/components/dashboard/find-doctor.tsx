@@ -109,14 +109,16 @@ export function FindDoctor() {
                           reviewCount={doctor.reviewCount || undefined}
                         />
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button>
-                        Book Appointment
-                      </Button>
-                      <Button variant="outline" size="icon">
-                        <Eye size={18} />
-                      </Button>
+                      
+                      <div className="flex flex-wrap gap-2 mt-3 md:mt-2">
+                        <Button size="sm" className="text-xs md:text-sm">
+                          Book Appointment
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs md:text-sm">
+                          <Eye size={16} className="mr-1" />
+                          View Profile
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
