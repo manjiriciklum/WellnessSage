@@ -311,6 +311,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json({ message: "Demo data generated successfully" });
   });
 
+  // MongoDB health check endpoint (HIPAA-compliant monitoring)
+  app.get("/api/system/health/database", async (req, res) => {
+    try {
+      const { checkMongoDBHealth } = await import('./db/mongodb');
+      const healthStatus = await checkMongoDBHealth();
+      
+      // Return a 200 status even if the database is down, but include the status
+      // This allows monitoring systems to determine the health based on the response body
+      return res.json({
+        service: 'database',
+        timestamp: new Date().toISOString(),
+        ...healthStatus
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        service: 'database',
+        status: 'error',
+        connected: false,
+        error: error.message || 'Unknown error checking database health',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
