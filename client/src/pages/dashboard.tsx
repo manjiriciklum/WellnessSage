@@ -4,6 +4,7 @@ import { HealthOverview } from '@/components/dashboard/health-overview';
 import { AiInsights } from '@/components/dashboard/ai-insights';
 import { FindDoctor } from '@/components/dashboard/find-doctor';
 import { RemindersAndGoals } from '@/components/dashboard/reminders-goals';
+import { HealthActions } from '@/components/dashboard/health-actions';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
 
@@ -32,7 +33,10 @@ export default function Dashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <FindDoctor />
-        <RemindersAndGoals />
+        <div className="md:col-span-1">
+          <RemindersAndGoals />
+        </div>
+        <HealthActions />
       </div>
     </div>
   );
