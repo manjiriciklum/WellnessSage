@@ -90,34 +90,38 @@ export function FindDoctor() {
             <>
               {doctors?.map((doctor) => (
                 <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                  <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
                       <AvatarImage src={doctor.profileImage || ''} alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} />
                       <AvatarFallback>{doctor.firstName[0]}{doctor.lastName[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="text-md font-medium text-neutral-800 dark:text-white">
-                        Dr. {doctor.firstName} {doctor.lastName}
-                      </h3>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-300">
-                        {doctor.specialty} • {doctor.practice}
-                      </p>
-                      <div className="flex items-center mt-1">
-                        <StarRating 
-                          value={doctor.rating || 0} 
-                          showValue={true}
-                          reviewCount={doctor.reviewCount || undefined}
-                        />
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 mt-3 md:mt-2">
-                        <Button size="sm" className="text-xs md:text-sm">
-                          Book Appointment
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-xs md:text-sm">
-                          <Eye size={16} className="mr-1" />
-                          View Profile
-                        </Button>
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <h3 className="text-md font-medium text-neutral-800 dark:text-white">
+                            Dr. {doctor.firstName} {doctor.lastName}
+                          </h3>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-300">
+                            {doctor.specialty} • {doctor.practice}
+                          </p>
+                          <div className="flex items-center mt-1">
+                            <StarRating 
+                              value={doctor.rating || 0} 
+                              showValue={true}
+                              reviewCount={doctor.reviewCount || undefined}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 mt-3 md:mt-0">
+                          <Button size="sm" className="text-xs md:text-sm">
+                            Book Appointment
+                          </Button>
+                          <Button variant="outline" size="sm" className="text-xs md:text-sm">
+                            <Eye size={16} className="mr-1" />
+                            View Profile
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
