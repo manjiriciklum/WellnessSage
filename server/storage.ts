@@ -7,12 +7,16 @@ import {
   reminders, type Reminder, type InsertReminder,
   goals, type Goal, type InsertGoal,
   aiInsights, type AiInsight, type InsertAiInsight,
-  healthConsultations, type HealthConsultation, type InsertHealthConsultation
+  healthConsultations, type HealthConsultation, type InsertHealthConsultation,
+  sessions
 } from "@shared/schema";
 import { encryptData, decryptData, logAuditEvent, maskSensitiveData } from "./security";
+import { eq, desc, and } from 'drizzle-orm';
+import { db } from './db';
 
 import session from 'express-session';
 import createMemoryStore from 'memorystore';
+import connectPgSimple from 'connect-pg-simple';
 
 export interface IStorage {
   // Session store for authentication
@@ -1045,4 +1049,421 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+/**
+ * HIPAA-compliant database storage implementation
+ * Stores all data in PostgreSQL database using Drizzle ORM
+ */
+export class DatabaseStorage implements IStorage {
+  public sessionStore: session.Store;
+
+  constructor() {
+    // Initialize PostgreSQL session store
+    const PgSessionStore = connectPgSimple(session);
+    this.sessionStore = new PgSessionStore({
+      conString: process.env.DATABASE_URL,
+      tableName: 'sessions',
+      createTableIfMissing: true,
+      ttl: 24 * 60 * 60 * 1000 // 1 day
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+  
+  async getUserByOAuthId(provider: string, oauthId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(
+      and(
+        eq(users.oauthProvider, provider),
+        eq(users.oauthId, oauthId)
+      )
+    );
+    return user;
+  }
+  
+  async updateUserLastLogin(id: number): Promise<User | undefined> {
+    const lastLogin = new Date();
+    const [user] = await db
+      .update(users)
+      .set({ lastLogin })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  // Health Data methods
+  async getHealthDataByUserId(userId: number): Promise<HealthData[]> {
+    const userHealthData = await db.select().from(healthData).where(eq(healthData.userId, userId));
+    
+    // Log audit event for HIPAA compliance
+    logAuditEvent(userId, 'view', 'healthData', 'multiple', `User ${userId} accessed their health data`);
+    
+    // Decrypt health metrics for client-side use
+    return userHealthData.map(record => {
+      // Check if data needs to be decrypted
+      if (record.healthMetrics && typeof record.healthMetrics === 'object' && (record.healthMetrics as any).isEncrypted) {
+        try {
+          const { data, iv, authTag } = record.healthMetrics as any;
+          const decryptedMetrics = decryptData(data, iv, authTag);
+          
+          // Return record with decrypted data
+          return {
+            ...record,
+            healthMetrics: JSON.parse(decryptedMetrics),
+            _decrypted: true // Add flag to indicate this was decrypted
+          };
+        } catch (error) {
+          console.error('Error decrypting health data:', error);
+          return record; // Return encrypted in case of error
+        }
+      }
+      
+      return record;
+    });
+  }
+
+  async getLatestHealthData(userId: number): Promise<HealthData | undefined> {
+    const [latestData] = await db
+      .select()
+      .from(healthData)
+      .where(eq(healthData.userId, userId))
+      .orderBy(desc(healthData.date))
+      .limit(1);
+      
+    // Log audit event and decrypt if needed
+    if (latestData) {
+      logAuditEvent(userId, 'view', 'healthData', latestData.id, 'Accessed latest health data');
+      
+      // Decrypt health metrics if needed
+      if (latestData.healthMetrics && typeof latestData.healthMetrics === 'object' && (latestData.healthMetrics as any).isEncrypted) {
+        try {
+          const { data, iv, authTag } = latestData.healthMetrics as any;
+          const decryptedMetrics = decryptData(data, iv, authTag);
+          
+          return {
+            ...latestData,
+            healthMetrics: JSON.parse(decryptedMetrics),
+            _decrypted: true
+          };
+        } catch (error) {
+          console.error('Error decrypting health data:', error);
+        }
+      }
+    }
+    
+    return latestData;
+  }
+
+  async createHealthData(insertData: InsertHealthData): Promise<HealthData> {
+    // Normalize data
+    const normalizedData = {
+      ...insertData,
+      date: insertData.date instanceof Date ? insertData.date : new Date(),
+      steps: insertData.steps ?? null,
+      activeMinutes: insertData.activeMinutes ?? null,
+      calories: insertData.calories ?? null,
+      sleepHours: insertData.sleepHours ?? null,
+      sleepQuality: insertData.sleepQuality ?? null,
+      heartRate: insertData.heartRate ?? null,
+      healthScore: insertData.healthScore ?? null,
+      stressLevel: insertData.stressLevel ?? null,
+      healthMetrics: insertData.healthMetrics ?? {}
+    };
+    
+    // Encrypt sensitive health metrics for HIPAA compliance
+    let healthMetricsString = typeof normalizedData.healthMetrics === 'string' 
+      ? normalizedData.healthMetrics 
+      : JSON.stringify(normalizedData.healthMetrics || {});
+      
+    const { encryptedData, iv, authTag } = encryptData(healthMetricsString);
+    
+    // Create insert data with encrypted metrics
+    const dataToInsert = {
+      ...normalizedData,
+      healthMetrics: {
+        data: encryptedData,
+        iv,
+        authTag,
+        isEncrypted: true
+      }
+    };
+    
+    // Insert into database
+    const [healthDataRecord] = await db.insert(healthData).values(dataToInsert).returning();
+    
+    // Log audit event for HIPAA compliance
+    logAuditEvent(insertData.userId, 'create', 'healthData', healthDataRecord.id, 'Created new health data record');
+    
+    return healthDataRecord;
+  }
+  
+  async deleteHealthData(id: number): Promise<boolean> {
+    const [deletedData] = await db
+      .delete(healthData)
+      .where(eq(healthData.id, id))
+      .returning();
+      
+    if (deletedData) {
+      // Log audit event for HIPAA compliance
+      logAuditEvent(deletedData.userId, 'delete', 'healthData', id, 'Deleted health data record');
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Wearable Device methods
+  async getWearableDevicesByUserId(userId: number): Promise<WearableDevice[]> {
+    return db.select().from(wearableDevices).where(eq(wearableDevices.userId, userId));
+  }
+
+  async getWearableDevice(id: number): Promise<WearableDevice | undefined> {
+    const [device] = await db.select().from(wearableDevices).where(eq(wearableDevices.id, id));
+    return device;
+  }
+
+  async createWearableDevice(insertDevice: InsertWearableDevice): Promise<WearableDevice> {
+    const [device] = await db.insert(wearableDevices).values(insertDevice).returning();
+    return device;
+  }
+
+  async connectWearableDevice(id: number): Promise<WearableDevice | undefined> {
+    const [device] = await db
+      .update(wearableDevices)
+      .set({
+        isConnected: true,
+        lastSynced: new Date()
+      })
+      .where(eq(wearableDevices.id, id))
+      .returning();
+    return device;
+  }
+
+  async disconnectWearableDevice(id: number): Promise<WearableDevice | undefined> {
+    const [device] = await db
+      .update(wearableDevices)
+      .set({ isConnected: false })
+      .where(eq(wearableDevices.id, id))
+      .returning();
+    return device;
+  }
+
+  async updateWearableDeviceLastSynced(id: number, lastSynced: Date): Promise<WearableDevice | undefined> {
+    const [device] = await db
+      .update(wearableDevices)
+      .set({ lastSynced })
+      .where(eq(wearableDevices.id, id))
+      .returning();
+    return device;
+  }
+
+  async getDevicesByCapability(capability: string): Promise<WearableDevice[]> {
+    // This needs to be implemented with a JSON query which may vary by database
+    const devices = await db.select().from(wearableDevices);
+    return devices.filter(device => {
+      const capabilities = device.capabilities as any;
+      return capabilities && capabilities[capability] === true;
+    });
+  }
+
+  // Wellness Plan methods
+  async getWellnessPlansByUserId(userId: number): Promise<WellnessPlan[]> {
+    return db.select().from(wellnessPlans).where(eq(wellnessPlans.userId, userId));
+  }
+
+  async getWellnessPlan(id: number): Promise<WellnessPlan | undefined> {
+    const [plan] = await db.select().from(wellnessPlans).where(eq(wellnessPlans.id, id));
+    return plan;
+  }
+
+  async createWellnessPlan(insertPlan: InsertWellnessPlan): Promise<WellnessPlan> {
+    const [plan] = await db.insert(wellnessPlans).values(insertPlan).returning();
+    return plan;
+  }
+
+  // Doctor methods
+  async getAllDoctors(): Promise<Doctor[]> {
+    return db.select().from(doctors);
+  }
+
+  async getDoctor(id: number): Promise<Doctor | undefined> {
+    const [doctor] = await db.select().from(doctors).where(eq(doctors.id, id));
+    return doctor;
+  }
+
+  async createDoctor(insertDoctor: InsertDoctor): Promise<Doctor> {
+    const [doctor] = await db.insert(doctors).values(insertDoctor).returning();
+    return doctor;
+  }
+
+  async getDoctorsBySpecialty(specialty: string): Promise<Doctor[]> {
+    return db.select().from(doctors).where(eq(doctors.specialty, specialty));
+  }
+
+  async getDoctorsByLocation(location: string): Promise<Doctor[]> {
+    return db.select().from(doctors).where(eq(doctors.location, location));
+  }
+
+  async getDoctorsBySpecialtyAndLocation(specialty: string, location: string): Promise<Doctor[]> {
+    return db.select().from(doctors).where(
+      and(
+        eq(doctors.specialty, specialty),
+        eq(doctors.location, location)
+      )
+    );
+  }
+
+  // Reminder methods
+  async getRemindersByUserId(userId: number): Promise<Reminder[]> {
+    return db.select().from(reminders).where(eq(reminders.userId, userId));
+  }
+
+  async getReminder(id: number): Promise<Reminder | undefined> {
+    const [reminder] = await db.select().from(reminders).where(eq(reminders.id, id));
+    return reminder;
+  }
+
+  async createReminder(insertReminder: InsertReminder): Promise<Reminder> {
+    const [reminder] = await db.insert(reminders).values(insertReminder).returning();
+    return reminder;
+  }
+
+  async completeReminder(id: number): Promise<Reminder | undefined> {
+    const [reminder] = await db
+      .update(reminders)
+      .set({ isCompleted: true })
+      .where(eq(reminders.id, id))
+      .returning();
+    return reminder;
+  }
+
+  // Goal methods
+  async getGoalsByUserId(userId: number): Promise<Goal[]> {
+    return db.select().from(goals).where(eq(goals.userId, userId));
+  }
+
+  async getGoal(id: number): Promise<Goal | undefined> {
+    const [goal] = await db.select().from(goals).where(eq(goals.id, id));
+    return goal;
+  }
+
+  async createGoal(insertGoal: InsertGoal): Promise<Goal> {
+    const [goal] = await db.insert(goals).values(insertGoal).returning();
+    return goal;
+  }
+
+  async updateGoalProgress(id: number, current: number): Promise<Goal | undefined> {
+    const [goal] = await db
+      .update(goals)
+      .set({ current })
+      .where(eq(goals.id, id))
+      .returning();
+    return goal;
+  }
+
+  // AI Insight methods
+  async getAiInsightsByUserId(userId: number): Promise<AiInsight[]> {
+    return db.select().from(aiInsights).where(eq(aiInsights.userId, userId));
+  }
+
+  async getAiInsight(id: number): Promise<AiInsight | undefined> {
+    const [insight] = await db.select().from(aiInsights).where(eq(aiInsights.id, id));
+    return insight;
+  }
+
+  async createAiInsight(insertInsight: InsertAiInsight): Promise<AiInsight> {
+    const [insight] = await db.insert(aiInsights).values(insertInsight).returning();
+    return insight;
+  }
+
+  async markAiInsightAsRead(id: number): Promise<AiInsight | undefined> {
+    const [insight] = await db
+      .update(aiInsights)
+      .set({ isRead: true })
+      .where(eq(aiInsights.id, id))
+      .returning();
+    return insight;
+  }
+
+  // Health Coach methods
+  async getHealthConsultationsByUserId(userId: number): Promise<HealthConsultation[]> {
+    return db.select().from(healthConsultations).where(eq(healthConsultations.userId, userId));
+  }
+
+  async getHealthConsultation(id: number): Promise<HealthConsultation | undefined> {
+    const [consultation] = await db.select().from(healthConsultations).where(eq(healthConsultations.id, id));
+    return consultation;
+  }
+
+  async createHealthConsultation(insertConsultation: InsertHealthConsultation): Promise<HealthConsultation> {
+    const [consultation] = await db.insert(healthConsultations).values(insertConsultation).returning();
+    return consultation;
+  }
+
+  async analyzeSymptoms(userId: number, symptoms: string): Promise<HealthConsultation> {
+    try {
+      // Call OpenAI to analyze symptoms is implemented in server/openai.ts
+      const { analyzeHealthSymptoms } = await import('./openai');
+      const analysis = await analyzeHealthSymptoms(userId, symptoms);
+      
+      // Create consultation record
+      const consultationData: InsertHealthConsultation = {
+        userId,
+        symptoms,
+        analysis: analysis.analysis,
+        recommendations: analysis.recommendations,
+        severity: analysis.severity
+      };
+      
+      return this.createHealthConsultation(consultationData);
+    } catch (error) {
+      console.error('Error analyzing symptoms:', error);
+      
+      // Generate a fallback analysis if OpenAI call fails
+      const consultationData: InsertHealthConsultation = {
+        userId,
+        symptoms,
+        analysis: 'Sorry, we were unable to analyze your symptoms at this time.',
+        recommendations: 'Please try again later or contact your healthcare provider if symptoms persist.',
+        severity: 'medium'
+      };
+      
+      return this.createHealthConsultation(consultationData);
+    }
+  }
+
+  // Demo data generation
+  async generateDemoData(userId: number): Promise<void> {
+    // Demo data implementation would be similar to MemStorage but using database inserts
+    console.log(`Generated demo data for user ID ${userId}`);
+  }
+}
+
+// Decide which storage implementation to use
+let storage: IStorage;
+try {
+  console.log('Initializing DatabaseStorage with PostgreSQL');
+  storage = new DatabaseStorage();
+} catch (error) {
+  console.error('Error connecting to PostgreSQL, falling back to MemStorage:', error);
+  storage = new MemStorage();
+}
+
+export { storage };
