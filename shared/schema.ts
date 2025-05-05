@@ -38,7 +38,8 @@ export const healthData = pgTable("health_data", {
   sleepQuality: integer("sleep_quality"),
   heartRate: integer("heart_rate"),
   healthScore: integer("health_score"),
-  stressLevel: integer("stress_level")
+  stressLevel: integer("stress_level"),
+  healthMetrics: json("health_metrics").default({})
 });
 
 export const insertHealthDataSchema = createInsertSchema(healthData).pick({
@@ -51,7 +52,8 @@ export const insertHealthDataSchema = createInsertSchema(healthData).pick({
   sleepQuality: true,
   heartRate: true,
   healthScore: true,
-  stressLevel: true
+  stressLevel: true,
+  healthMetrics: true
 });
 
 export type InsertHealthData = z.infer<typeof insertHealthDataSchema>;

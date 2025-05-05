@@ -28,6 +28,8 @@ export interface IStorage {
   createWearableDevice(device: InsertWearableDevice): Promise<WearableDevice>;
   connectWearableDevice(id: number): Promise<WearableDevice | undefined>;
   disconnectWearableDevice(id: number): Promise<WearableDevice | undefined>;
+  updateWearableDeviceLastSynced(id: number, lastSynced: Date): Promise<WearableDevice | undefined>;
+  getDevicesByCapability(capability: string): Promise<WearableDevice[]>;
 
   // Wellness Plan methods
   getWellnessPlansByUserId(userId: number): Promise<WellnessPlan[]>;
@@ -264,6 +266,28 @@ export class MemStorage implements IStorage {
     };
     this.wearableDevices.set(id, updatedDevice);
     return updatedDevice;
+  }
+  
+  async updateWearableDeviceLastSynced(id: number, lastSynced: Date): Promise<WearableDevice | undefined> {
+    const device = this.wearableDevices.get(id);
+    if (!device) return undefined;
+    
+    const updatedDevice: WearableDevice = {
+      ...device,
+      lastSynced
+    };
+    this.wearableDevices.set(id, updatedDevice);
+    return updatedDevice;
+  }
+  
+  async getDevicesByCapability(capability: string): Promise<WearableDevice[]> {
+    return Array.from(this.wearableDevices.values()).filter(device => {
+      if (!device.capabilities) return false;
+      
+      // Check if the device has this capability
+      const capabilities = device.capabilities as Record<string, boolean>;
+      return capabilities[capability] === true;
+    });
   }
 
   // Wellness Plan methods
