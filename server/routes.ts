@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { mongoStorage } from "./db/mongo-storage";
-import { isConnected } from "./db/mongodb";
+import { isConnected, checkMongoDBHealth } from "./db/mongodb";
 import { z } from "zod";
 import { auditLogMiddleware, requireTLS } from "./security";
 import { analyzeHealthSymptoms, chatWithHealthAssistant } from "./openai";
@@ -28,6 +28,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (process.env.NODE_ENV === 'production') {
     app.use(requireTLS);
   }
+  
+  // API route to check database connection status
+  app.get("/api/system/db-status", async (req, res) => {
+    try {
+      const status = await checkMongoDBHealth();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check database status", details: error });
+    }
+  });
   // User routes
   app.get("/api/users/:id", isAuthenticated, async (req, res) => {
     const userId = parseInt(req.params.id);

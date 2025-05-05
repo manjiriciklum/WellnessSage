@@ -45,8 +45,13 @@ export async function connectToDatabase(retryAttempts = 3, retryDelay = 3000) {
   // Function to attempt connection with retries
   const attemptConnection = async (attemptsLeft: number): Promise<void> => {
     try {
-      console.log(`Attempting to connect to MongoDB: ${MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')}`);
-      await mongoose.connect(MONGODB_URI, options);
+      // Ensure URI exists and log it (masking credentials)
+      if (MONGODB_URI) {
+        console.log(`Attempting to connect to MongoDB: ${MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')}`);
+        await mongoose.connect(MONGODB_URI, options);
+      } else {
+        throw new Error('MongoDB URI is not defined');
+      }
       console.log('Successfully connected to MongoDB');
       
       // Set up event listeners after successful connection
