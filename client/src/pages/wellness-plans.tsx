@@ -40,7 +40,7 @@ export default function WellnessPlansPage() {
                   <span className="font-medium">65%</span>
                 </div>
                 <div className="mb-4">
-                  <SimpleProgress value={65} maxValue={100} colorClass="bg-primary" />
+                  <SimpleProgress value={65} maxValue={100} />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>
@@ -62,7 +62,7 @@ export default function WellnessPlansPage() {
                   <span className="font-medium">40%</span>
                 </div>
                 <div className="mb-4">
-                  <SimpleProgress value={40} maxValue={100} colorClass="bg-secondary" />
+                  <SimpleProgress value={40} maxValue={100} />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>
@@ -84,7 +84,7 @@ export default function WellnessPlansPage() {
                   <span className="font-medium">25%</span>
                 </div>
                 <div className="mb-4">
-                  <SimpleProgress value={25} maxValue={100} colorClass="bg-accent" />
+                  <SimpleProgress value={25} maxValue={100} />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>
@@ -106,7 +106,7 @@ export default function WellnessPlansPage() {
                   <span className="font-medium">10%</span>
                 </div>
                 <div className="mb-4">
-                  <SimpleProgress value={10} maxValue={100} colorClass="bg-error" />
+                  <SimpleProgress value={10} maxValue={100} />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>

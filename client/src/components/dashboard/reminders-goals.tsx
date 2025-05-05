@@ -120,11 +120,6 @@ export function RemindersAndGoals() {
                     <SimpleProgress 
                       value={goal.current || 0} 
                       maxValue={goal.target || 1}
-                      colorClass={
-                        goal.category === 'exercise' ? 'bg-primary' :
-                        goal.category === 'sleep' ? 'bg-error' :
-                        'bg-secondary'
-                      }
                     />
                   </div>
                 ))}
@@ -140,7 +135,6 @@ export function RemindersAndGoals() {
                   <SimpleProgress 
                     value={7000} 
                     maxValue={10000}
-                    colorClass="bg-primary"
                   />
                 </div>
                 
@@ -154,7 +148,6 @@ export function RemindersAndGoals() {
                   <SimpleProgress 
                     value={3} 
                     maxValue={5}
-                    colorClass="bg-secondary"
                   />
                 </div>
                 

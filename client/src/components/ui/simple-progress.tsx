@@ -6,7 +6,7 @@ interface SimpleProgressProps {
   colorClass?: string;
 }
 
-export function SimpleProgress({ value, maxValue, colorClass = 'bg-primary' }: SimpleProgressProps) {
+export function SimpleProgress({ value, maxValue, colorClass = 'bg-blue-500' }: SimpleProgressProps) {
   // Calculate percentage
   const percentage = Math.min(Math.max((value / maxValue) * 100, 0), 100);
   
