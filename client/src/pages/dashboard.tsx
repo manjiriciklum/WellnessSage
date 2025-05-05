@@ -38,12 +38,12 @@ export default function Dashboard() {
         <AiInsights />
       </div>
       
-      {/* Bottom section - Find doctor and Reminders/Goals */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4">
+      {/* Bottom section - Stacked layout for Find Doctor and Reminders/Goals */}
+      <div className="mt-8 space-y-8">
+        <div>
           <FindDoctor />
         </div>
-        <div className="lg:col-span-8">
+        <div>
           <RemindersAndGoals />
         </div>
       </div>
