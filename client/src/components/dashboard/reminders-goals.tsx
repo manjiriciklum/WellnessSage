@@ -161,7 +161,6 @@ export function RemindersAndGoals() {
                   <SimpleProgress 
                     value={6} 
                     maxValue={8}
-                    colorClass="bg-error"
                   />
                 </div>
               </>
