@@ -1,8 +1,22 @@
 import mongoose from 'mongoose';
 import { logAuditEvent } from '../security';
 
-// MongoDB connection URI - use environment variable or a default local development URI
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/healthcare';
+// Initialize MongoDB connection URI
+let MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URL;
+
+// Check if we need to create MongoDB connection URL from individual credentials
+if (!MONGODB_URI && process.env.MONGODB_USERNAME && process.env.MONGODB_PASSWORD && process.env.MONGODB_HOST) {
+  const username = encodeURIComponent(process.env.MONGODB_USERNAME);
+  const password = encodeURIComponent(process.env.MONGODB_PASSWORD);
+  const host = process.env.MONGODB_HOST;
+  const dbName = process.env.MONGODB_DATABASE || 'healthcare_db';
+  MONGODB_URI = `mongodb+srv://${username}:${password}@${host}/${dbName}?retryWrites=true&w=majority`;
+  console.log('Constructed MongoDB URI from environment variables');
+} else if (!MONGODB_URI) {
+  // Fallback to local MongoDB if no credentials provided
+  MONGODB_URI = 'mongodb://localhost:27017/healthcare_db';
+  console.log('Using local MongoDB fallback URI');
+}
 
 // Connection options - production-ready settings with updated syntax
 const options = {
@@ -31,6 +45,7 @@ export async function connectToDatabase(retryAttempts = 3, retryDelay = 3000) {
   // Function to attempt connection with retries
   const attemptConnection = async (attemptsLeft: number): Promise<void> => {
     try {
+      console.log(`Attempting to connect to MongoDB: ${MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')}`);
       await mongoose.connect(MONGODB_URI, options);
       console.log('Successfully connected to MongoDB');
       

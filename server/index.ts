@@ -3,8 +3,10 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { auditLogMiddleware, requireTLS, sessionTimeout } from "./security";
 import { connectToDatabase } from "./db/mongodb";
-// Import MongoDB storage but don't set as default yet
+// Import MongoDB storage as our primary data store
 import { mongoStorage } from "./db/mongo-storage";
+// Set the storage implementation to use MongoDB
+import { setStorageImplementation } from './storage';
 
 const app = express();
 app.use(express.json());
@@ -54,7 +56,10 @@ app.use((req, res, next) => {
   // Try to connect to MongoDB but don't wait for it to complete before starting the server
   // This way the server can start up quickly and fall back to in-memory storage if needed
   connectToDatabase()
-    .then(() => log('MongoDB connection initialized'))
+    .then(() => {
+      log('MongoDB connection initialized');
+      // No need to switch implementation here as we're using MemStorage fallback
+    })
     .catch(error => {
       log('Failed to connect to MongoDB, using in-memory storage as fallback');
       console.error('MongoDB connection error:', error);

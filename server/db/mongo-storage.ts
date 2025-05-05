@@ -21,6 +21,13 @@ import { analyzeHealthSymptoms } from '../openai';
  * Falls back to in-memory storage if MongoDB is not connected
  */
 export class MongoStorage implements IStorage {
+  // Session store
+  sessionStore: any;
+  
+  // Method to set session store from main storage
+  setSessionStore(store: any) {
+    this.sessionStore = store;
+  }
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     try {

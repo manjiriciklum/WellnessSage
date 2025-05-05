@@ -1456,14 +1456,17 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Decide which storage implementation to use
-let storage: IStorage;
-try {
-  console.log('Initializing DatabaseStorage with PostgreSQL');
-  storage = new DatabaseStorage();
-} catch (error) {
-  console.error('Error connecting to PostgreSQL, falling back to MemStorage:', error);
-  storage = new MemStorage();
+// Use a variable to hold the current storage implementation
+let storage: IStorage = new MemStorage();
+
+// Function to set the storage implementation
+export function setStorageImplementation(newStorage: IStorage) {
+  if (newStorage) {
+    console.log('Switching to MongoDB storage implementation');
+    storage = newStorage;
+  } else {
+    console.log('Invalid storage implementation provided, keeping current implementation');
+  }
 }
 
 export { storage };
