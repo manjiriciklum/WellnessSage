@@ -75,7 +75,7 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white mr-3">
           <Heart size={16} />
         </div>
-        <h1 className="text-xl font-headings font-bold text-neutral-800 dark:text-white">HealthAI</h1>
+        <h1 className="text-xl font-headings font-bold text-neutral-800 dark:text-white">Ciklum's HealthAI</h1>
       </div>
       
       <nav className="mt-6">
@@ -134,7 +134,7 @@ export function Sidebar({ className }: SidebarProps) {
           <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white mr-3">
             <Heart size={16} />
           </div>
-          <h1 className="text-xl font-headings font-bold text-neutral-800 dark:text-white">HealthAI</h1>
+          <h1 className="text-xl font-headings font-bold text-neutral-800 dark:text-white">Ciklum's HealthAI</h1>
         </div>
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>

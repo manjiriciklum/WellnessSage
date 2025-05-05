@@ -49,7 +49,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="healthai-theme">
+      <ThemeProvider defaultTheme="light" storageKey="ciklum-healthai-theme">
         <AuthProvider>
           <NotificationContext />
         </AuthProvider>

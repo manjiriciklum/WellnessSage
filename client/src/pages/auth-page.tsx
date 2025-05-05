@@ -185,7 +185,7 @@ const AuthPage = () => {
         {/* Right side - Platform intro */}
         <div className="hidden lg:block text-center lg:text-left">
           <h1 className="text-4xl font-bold tracking-tight mb-6 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            HealthAI Platform
+            Ciklum's HealthAI Platform
           </h1>
           <p className="text-xl mb-8 text-gray-600 dark:text-gray-300">
             Your comprehensive health management system with personalized insights, wearable
