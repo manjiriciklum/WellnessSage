@@ -91,14 +91,19 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
       };
       
       console.log('Submitting goal:', formattedData);
-      const response = await apiRequest('POST', '/api/goals', formattedData);
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to save goal');
+      try {
+        const response = await apiRequest('POST', '/api/goals', formattedData);
+        const result = await response.json();
+        
+        if (!response.ok) {
+          console.error('Goal submission failed:', result);
+          throw new Error(result.message || result.error || 'Failed to save goal');
+        }
+        return result;
+      } catch (error) {
+        console.error('Goal submission exception:', error);
+        throw error;
       }
-      
-      return result;
     },
     onSuccess: () => {
       // Invalidate queries to refresh goal list
