@@ -33,14 +33,18 @@ type AddHealthDataModalProps = {
 };
 
 // Extend the insert schema with additional validation
-const formSchema = insertHealthDataSchema.extend({
+const formSchema = z.object({
+  userId: z.number(),
+  date: z.date().optional().default(() => new Date()),
   steps: z.number().min(0).optional().nullable(),
   activeMinutes: z.number().min(0).optional().nullable(),
   calories: z.number().min(0).optional().nullable(),
   sleepHours: z.number().min(0).max(24).optional().nullable(),
   sleepQuality: z.number().min(0).max(100).optional().nullable(),
   heartRate: z.number().min(0).max(220).optional().nullable(),
+  healthScore: z.number().min(0).max(100).optional().nullable(),
   stressLevel: z.number().min(0).max(10).optional().nullable(),
+  healthMetrics: z.any().optional().default({})
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -68,14 +72,31 @@ export function AddHealthDataModal({ isOpen, onClose }: AddHealthDataModalProps)
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: FormValues) => {
-      // Format date properly if it exists
+      // Clean up and format the data for API submission
+      // Ensure all fields are properly set with correct types
       const formattedData = {
-        ...data,
+        userId: data.userId,
         date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
+        steps: data.steps !== null ? data.steps : null,
+        activeMinutes: data.activeMinutes !== null ? data.activeMinutes : null,
+        calories: data.calories !== null ? data.calories : null,
+        sleepHours: data.sleepHours !== null ? data.sleepHours : null,
+        sleepQuality: data.sleepQuality !== null ? data.sleepQuality : null,
+        heartRate: data.heartRate !== null ? data.heartRate : null,
+        healthScore: data.healthScore !== null ? data.healthScore : null,
+        stressLevel: data.stressLevel !== null ? data.stressLevel : null,
+        healthMetrics: data.healthMetrics || {}
       };
       
+      console.log('Submitting health data:', formattedData);
       const response = await apiRequest('POST', '/api/health-data', formattedData);
-      return response.json();
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save health data');
+      }
+      
+      return result;
     },
     onSuccess: () => {
       // Invalidate the health data queries to refresh data

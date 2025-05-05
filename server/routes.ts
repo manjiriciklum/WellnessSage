@@ -59,11 +59,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/health-data", async (req, res) => {
     try {
+      console.log('Received health data:', JSON.stringify(req.body));
       const validatedData = insertHealthDataSchema.parse(req.body);
+      console.log('Validated health data:', JSON.stringify(validatedData));
       const healthData = await storage.createHealthData(validatedData);
       return res.status(201).json(healthData);
     } catch (error) {
-      return res.status(400).json({ message: "Invalid health data" });
+      console.error('Health data validation error:', error);
+      return res.status(400).json({ message: "Invalid health data", error: error.message });
     }
   });
 
