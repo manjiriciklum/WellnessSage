@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/hooks/use-auth';
 
 interface SidebarProps {
   className?: string;
@@ -23,7 +23,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
-  const { user } = useUser();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const routes = [
