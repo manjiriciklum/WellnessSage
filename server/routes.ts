@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
@@ -7,6 +7,7 @@ import { isConnected } from "./db/mongodb";
 import { z } from "zod";
 import { auditLogMiddleware, requireTLS } from "./security";
 import { analyzeHealthSymptoms, chatWithHealthAssistant } from "./openai";
+import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import {
   insertUserSchema,
   insertHealthDataSchema,
@@ -19,8 +20,16 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication
+  setupAuth(app);
+  
+  // Apply middleware for HIPAA compliance
+  app.use(auditLogMiddleware);
+  if (process.env.NODE_ENV === 'production') {
+    app.use(requireTLS);
+  }
   // User routes
-  app.get("/api/users/:id", async (req, res) => {
+  app.get("/api/users/:id", isAuthenticated, async (req, res) => {
     const userId = parseInt(req.params.id);
     const user = await storage.getUser(userId);
     if (!user) {
@@ -29,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(user);
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", isAdmin, async (req, res) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
       const user = await storage.createUser(validatedData);
@@ -39,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/profile", async (req, res) => {
+  app.get("/api/users/:id/profile", isAuthenticated, async (req, res) => {
     const userId = parseInt(req.params.id);
     const user = await storage.getUser(userId);
     if (!user) {
@@ -51,13 +60,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Health data routes
-  app.get("/api/users/:userId/health-data", async (req, res) => {
+  app.get("/api/users/:userId/health-data", isAuthenticated, async (req, res) => {
     const userId = parseInt(req.params.userId);
     const healthData = await storage.getHealthDataByUserId(userId);
     return res.json(healthData);
   });
 
-  app.post("/api/health-data", async (req, res) => {
+  app.post("/api/health-data", isAuthenticated, async (req, res) => {
     try {
       console.log('Received health data:', JSON.stringify(req.body));
       

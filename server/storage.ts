@@ -153,6 +153,30 @@ export class MemStorage implements IStorage {
       (user) => user.username === username,
     );
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
+  
+  async getUserByOAuthId(provider: string, oauthId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.oauthProvider === provider && user.oauthId === oauthId,
+    );
+  }
+  
+  async updateUserLastLogin(id: number): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser: User = {
+      ...user,
+      lastLogin: new Date()
+    };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
@@ -162,7 +186,11 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: new Date(), 
       // Ensure optional fields are properly set to null when undefined
-      profileImage: insertUser.profileImage ?? null
+      profileImage: insertUser.profileImage ?? null,
+      role: insertUser.role ?? 'user',
+      oauthProvider: insertUser.oauthProvider ?? null,
+      oauthId: insertUser.oauthId ?? null,
+      lastLogin: insertUser.lastLogin ?? null
     };
     this.users.set(id, user);
     return user;
@@ -716,6 +744,10 @@ export class MemStorage implements IStorage {
       lastName: 'Wilson',
       email: 'emma@example.com',
       profileImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80',
+      role: 'user',
+      oauthProvider: null,
+      oauthId: null,
+      lastLogin: null,
       createdAt: new Date()
     };
     this.users.set(demoUser.id, demoUser);
