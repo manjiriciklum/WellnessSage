@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { mongoStorage } from "./db/mongo-storage";
+import { isConnected } from "./db/mongodb";
 import { z } from "zod";
 import { auditLogMiddleware, requireTLS } from "./security";
 import { analyzeHealthSymptoms, chatWithHealthAssistant } from "./openai";
@@ -127,17 +129,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const specialty = req.query.specialty as string | undefined;
     const location = req.query.location as string | undefined;
     
+    // Use MongoDB storage when connected, otherwise fall back to in-memory
+    const doctorStorage = isConnected() ? mongoStorage : storage;
+    
     if (specialty && location) {
-      const doctors = await storage.getDoctorsBySpecialtyAndLocation(specialty, location);
+      const doctors = await doctorStorage.getDoctorsBySpecialtyAndLocation(specialty, location);
       return res.json(doctors);
     } else if (specialty) {
-      const doctors = await storage.getDoctorsBySpecialty(specialty);
+      const doctors = await doctorStorage.getDoctorsBySpecialty(specialty);
       return res.json(doctors);
     } else if (location) {
-      const doctors = await storage.getDoctorsByLocation(location);
+      const doctors = await doctorStorage.getDoctorsByLocation(location);
       return res.json(doctors);
     } else {
-      const doctors = await storage.getAllDoctors();
+      const doctors = await doctorStorage.getAllDoctors();
       return res.json(doctors);
     }
   });

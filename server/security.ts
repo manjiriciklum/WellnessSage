@@ -286,12 +286,17 @@ export function sessionTimeout(minutes: number) {
 
 /** 
  * TLS/SSL validation middleware - HIPAA requires secure transmission
+ * Only active in production environment
  */
 export function requireTLS(req: Request, res: Response, next: NextFunction): void {
-  // Check if connection is secure
-  if (!req.secure && process.env.NODE_ENV === 'production') {
-    res.status(403).json({ error: 'TLS/SSL Required' });
-    return;
+  // Check if we're in production and protocol is not secure
+  if (process.env.NODE_ENV === 'production' && !req.secure) {
+    // Check for proxy headers in case we're behind a reverse proxy
+    if (req.get('x-forwarded-proto') !== 'https') {
+      console.warn('Non-secure connection attempt in production');
+      res.status(403).json({ error: 'TLS/SSL Required for HIPAA Compliance' });
+      return;
+    }
   }
   next();
 }

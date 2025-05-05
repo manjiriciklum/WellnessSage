@@ -37,6 +37,7 @@ export interface IStorage {
   // Doctor methods
   getAllDoctors(): Promise<Doctor[]>;
   getDoctor(id: number): Promise<Doctor | undefined>;
+  createDoctor(doctor: InsertDoctor): Promise<Doctor>;
   getDoctorsBySpecialty(specialty: string): Promise<Doctor[]>;
   getDoctorsByLocation(location: string): Promise<Doctor[]>;
   getDoctorsBySpecialtyAndLocation(specialty: string, location: string): Promise<Doctor[]>;
@@ -283,6 +284,13 @@ export class MemStorage implements IStorage {
 
   async getDoctor(id: number): Promise<Doctor | undefined> {
     return this.doctors.get(id);
+  }
+
+  async createDoctor(insertDoctor: InsertDoctor): Promise<Doctor> {
+    const id = this.doctorId++;
+    const doctor: Doctor = { ...insertDoctor, id };
+    this.doctors.set(id, doctor);
+    return doctor;
   }
 
   async getDoctorsBySpecialty(specialty: string): Promise<Doctor[]> {
