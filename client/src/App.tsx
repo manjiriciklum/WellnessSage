@@ -13,10 +13,13 @@ import FindDoctorPage from "@/pages/find-doctor";
 import AlertsRemindersPage from "@/pages/alerts-reminders";
 import HealthCoachPage from "@/pages/health-coach";
 import SettingsPage from "@/pages/settings";
+import AuthPage from "@/pages/auth-page";
 import { DashboardLayout } from "@/components/dashboard/layout";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
 
-function Router() {
+function ProtectedDashboard() {
   return (
     <DashboardLayout>
       <Switch>
@@ -28,29 +31,42 @@ function Router() {
         <Route path="/alerts-reminders" component={AlertsRemindersPage} />
         <Route path="/health-coach" component={HealthCoachPage} />
         <Route path="/settings" component={SettingsPage} />
-        {/* Fallback to 404 */}
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
   );
 }
 
-function App() {
-  // Using a fixed user ID (1) for demo purposes
-  // In a real application, this would come from authentication
-  const userId = 1;
+function Router() {
+  return (
+    <Switch>
+      <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/*" component={ProtectedDashboard} />
+    </Switch>
+  );
+}
 
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="healthai-theme">
-        <NotificationProvider userId={userId}>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </NotificationProvider>
+        <AuthProvider>
+          <NotificationContext />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
+  );
+}
+
+function NotificationContext() {
+  const { user } = useAuth();
+  return (
+    <NotificationProvider userId={user?.id || 1}>
+      <TooltipProvider>
+        <Toaster />
+        <Router />
+      </TooltipProvider>
+    </NotificationProvider>
   );
 }
 

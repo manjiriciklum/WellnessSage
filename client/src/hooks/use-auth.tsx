@@ -32,7 +32,7 @@ type RegisterData = {
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode | ((props: { user: User | null }) => ReactNode) }) {
   const { toast } = useToast();
   const {
     data: user,
@@ -113,18 +113,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const contextValue = {
+    user: user || null,
+    isLoading,
+    error,
+    loginMutation,
+    logoutMutation,
+    registerMutation,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user: user || null,
-        isLoading,
-        error,
-        loginMutation,
-        logoutMutation,
-        registerMutation,
-      }}
-    >
-      {children}
+    <AuthContext.Provider value={contextValue}>
+      {typeof children === 'function' ? children(contextValue) : children}
     </AuthContext.Provider>
   );
 }
