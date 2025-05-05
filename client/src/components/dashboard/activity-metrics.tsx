@@ -8,9 +8,16 @@ import { useHealthData } from '@/hooks/use-health-data';
 export function ActivityMetrics() {
   const { healthData, isLoading } = useHealthData();
   
-  const stepsProgress = healthData ? (healthData.steps / 10000) * 100 : 0;
-  const activeMinutesProgress = healthData ? (healthData.activeMinutes / 60) * 100 : 0;
-  const caloriesProgress = healthData ? (healthData.calories / 2500) * 100 : 0;
+  // Ensure values are numbers and properly calculated for progress bars
+  const stepsProgress = healthData?.steps ? Math.min((healthData.steps / 10000) * 100, 100) : 0;
+  const activeMinutesProgress = healthData?.activeMinutes ? Math.min((healthData.activeMinutes / 60) * 100, 100) : 0;
+  const caloriesProgress = healthData?.calories ? Math.min((healthData.calories / 2500) * 100, 100) : 0;
+  
+  // Log values for debugging
+  console.log('Health Data:', healthData);
+  console.log('Steps Progress:', stepsProgress);
+  console.log('Active Minutes Progress:', activeMinutesProgress);
+  console.log('Calories Progress:', caloriesProgress);
   
   return (
     <Card className="shadow-sm">
