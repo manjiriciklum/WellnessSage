@@ -60,8 +60,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/health-data", async (req, res) => {
     try {
       console.log('Received health data:', JSON.stringify(req.body));
-      const validatedData = insertHealthDataSchema.parse(req.body);
+      
+      // Create a modified schema that makes most fields optional
+      const modifiedSchema = z.object({
+        userId: z.number(),
+        date: z.string().nullable().optional(),
+        steps: z.number().nullable().optional(),
+        activeMinutes: z.number().nullable().optional(),
+        calories: z.number().nullable().optional(),
+        sleepHours: z.number().nullable().optional(),
+        sleepQuality: z.number().nullable().optional(),
+        heartRate: z.number().nullable().optional(),
+        healthScore: z.number().nullable().optional(),
+        stressLevel: z.number().nullable().optional(),
+        healthMetrics: z.any().optional().default({})
+      });
+      
+      const validatedData = modifiedSchema.parse(req.body);
       console.log('Validated health data:', JSON.stringify(validatedData));
+      
+      // Ensure date is a valid date object if present
+      if (validatedData.date) {
+        validatedData.date = new Date(validatedData.date);
+      }
+      
       const healthData = await storage.createHealthData(validatedData);
       return res.status(201).json(healthData);
     } catch (error) {
