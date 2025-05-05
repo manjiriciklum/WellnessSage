@@ -3,6 +3,7 @@ import { formatDate } from '@/lib/utils';
 import { NotificationPanel } from '@/components/notifications/notification-panel';
 import { ActionMenu } from './action-menu';
 import { UserProfile } from '@/components/auth/user-profile';
+import { useAuth } from '@/hooks/use-auth';
 
 interface TopBarProps {
   title: string;
@@ -10,6 +11,7 @@ interface TopBarProps {
 
 export function TopBar({ title }: TopBarProps) {
   const today = formatDate(new Date());
+  const { user } = useAuth();
 
   return (
     <header className="bg-white dark:bg-neutral-700 p-4 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-600 shadow-sm">
@@ -18,7 +20,7 @@ export function TopBar({ title }: TopBarProps) {
         <p className="text-sm text-neutral-500 dark:text-neutral-300">{today}</p>
       </div>
       <div className="flex items-center gap-3">
-        <NotificationPanel />
+        {user && <NotificationPanel />}
         <UserProfile />
         <ActionMenu />
       </div>

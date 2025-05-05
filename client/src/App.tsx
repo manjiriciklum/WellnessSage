@@ -61,16 +61,22 @@ function App() {
 function NotificationContext() {
   const { user } = useAuth();
   
-  // Use a default user ID for notifications if no user is logged in
-  const userId = user?.id || 1;
-  
   return (
-    <NotificationProvider userId={userId}>
+    // Only provide the NotificationProvider if a user is logged in
+    user ? (
+      <NotificationProvider userId={user.id}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </NotificationProvider>
+    ) : (
+      // Otherwise just render without notifications
       <TooltipProvider>
         <Toaster />
         <Router />
       </TooltipProvider>
-    </NotificationProvider>
+    )
   );
 }
 
