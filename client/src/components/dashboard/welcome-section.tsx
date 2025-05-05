@@ -1,13 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, Watch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { getGreeting } from '@/lib/utils';
 import { useUser } from '@/hooks/use-user';
+import { Link } from 'wouter';
+import { AddHealthDataModal } from './add-health-data-modal';
 
 export function WelcomeSection() {
   const { user } = useUser();
   const greeting = getGreeting(user?.firstName || 'User');
+  const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
+
+  const openAddDataModal = () => setIsAddDataModalOpen(true);
+  const closeAddDataModal = () => setIsAddDataModalOpen(false);
 
   return (
     <section className="mb-8">
@@ -23,18 +29,32 @@ export function WelcomeSection() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button className="px-4 py-2 bg-primary text-white rounded-md flex items-center text-sm font-medium hover:bg-primary-dark transition-colors">
+              <Button 
+                className="px-4 py-2 bg-primary text-white rounded-md flex items-center text-sm font-medium hover:bg-primary-dark transition-colors"
+                onClick={openAddDataModal}
+              >
                 <Plus size={16} className="mr-2" />
                 Add Health Data
               </Button>
-              <Button variant="outline" className="px-4 py-2 bg-white dark:bg-neutral-600 text-neutral-700 dark:text-white border border-neutral-200 dark:border-neutral-500 rounded-md flex items-center text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-500 transition-colors">
-                <Watch size={16} className="mr-2" />
-                Sync Devices
-              </Button>
+              <Link href="/connected-devices">
+                <Button 
+                  variant="outline" 
+                  className="px-4 py-2 bg-white dark:bg-neutral-600 text-neutral-700 dark:text-white border border-neutral-200 dark:border-neutral-500 rounded-md flex items-center text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-500 transition-colors"
+                >
+                  <Watch size={16} className="mr-2" />
+                  Sync Devices
+                </Button>
+              </Link>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Add Health Data Modal */}
+      <AddHealthDataModal 
+        isOpen={isAddDataModalOpen} 
+        onClose={closeAddDataModal} 
+      />
     </section>
   );
 }
