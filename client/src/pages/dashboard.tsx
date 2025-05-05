@@ -4,7 +4,6 @@ import { HealthOverview } from '@/components/dashboard/health-overview';
 import { AiInsights } from '@/components/dashboard/ai-insights';
 import { FindDoctor } from '@/components/dashboard/find-doctor';
 import { RemindersAndGoals } from '@/components/dashboard/reminders-goals';
-import { HealthActions } from '@/components/dashboard/health-actions';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
 
@@ -29,14 +28,9 @@ export default function Dashboard() {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <WelcomeSection />
       
-      {/* Top section - Health overview and Health actions */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8">
-          <HealthOverview />
-        </div>
-        <div className="lg:col-span-4">
-          <HealthActions />
-        </div>
+      {/* Top section - Health overview */}
+      <div className="mt-8">
+        <HealthOverview />
       </div>
       
       {/* Middle section - AI Insights */}
