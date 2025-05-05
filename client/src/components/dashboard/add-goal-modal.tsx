@@ -67,10 +67,14 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
   const { user } = useAuth();
   const userId = user?.id;
   
+  // Debug user information
+  console.log('Current user in AddGoalModal:', user);
+  console.log('User ID in AddGoalModal:', userId);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      userId,
+      userId: userId || 0, // Fallback to 0, will be updated when user loads
       title: '',
       target: 0,
       current: 0,
@@ -80,6 +84,14 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
       endDate: null,
     },
   });
+  
+  // Update the userId value when user changes/loads
+  React.useEffect(() => {
+    if (userId) {
+      console.log('Setting userId in form:', userId);
+      form.setValue('userId', userId);
+    }
+  }, [userId, form]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: FormValues) => {
@@ -130,7 +142,18 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
   });
 
   const onSubmit = (data: FormValues) => {
-    mutate(data);
+    console.log('Form data at submission:', data);
+    // Double check userId
+    if (!data.userId && userId) {
+      const updatedData = {
+        ...data,
+        userId: userId
+      };
+      console.log('Updated form data with user ID:', updatedData);
+      mutate(updatedData);
+    } else {
+      mutate(data);
+    }
   };
 
   return (

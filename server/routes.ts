@@ -400,46 +400,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Goal data received:', JSON.stringify(req.body));
       
-      // Create a simple validation schema that handles both missing and null values
-      const goalSchema = z.object({
-        userId: z.number(),
-        title: z.string().min(1, 'Title is required'),
-        target: z.coerce.number().positive('Target must be greater than 0'),
-        current: z.coerce.number().nonnegative().optional().default(0),
-        unit: z.string().optional().default(''),
-        category: z.string().min(1, 'Category is required'),
-        startDate: z.string().or(z.date()).optional().nullable(),
-        endDate: z.string().or(z.date()).optional().nullable(),
-      });
+      // Log userId type since this might be the issue
+      console.log('userId type:', typeof req.body.userId);
+      console.log('userId value:', req.body.userId);
       
-      // Validate and transform input data
-      const parsedData = goalSchema.safeParse(req.body);
-      
-      if (!parsedData.success) {
-        console.error('Goal validation errors:', parsedData.error.errors);
-        return res.status(400).json({
-          message: "Invalid goal data",
-          errors: parsedData.error.errors,
-        });
+      // Manual validation to help diagnose
+      if (!req.body.userId) {
+        console.error('Missing userId in request');
+        return res.status(400).json({ message: "Missing userId in request" });
       }
       
-      const validatedData = parsedData.data;
-      console.log('Validated goal data:', validatedData);
+      if (!req.body.title) {
+        console.error('Missing title in request');
+        return res.status(400).json({ message: "Missing title in request" });
+      }
       
-      // Create a properly formatted object for storage
-      const formattedData = {
-        userId: validatedData.userId,
-        title: validatedData.title,
-        target: validatedData.target,
-        current: validatedData.current || 0,
-        unit: validatedData.unit || '',
-        category: validatedData.category,
-        startDate: validatedData.startDate ? new Date(validatedData.startDate) : new Date(),
-        endDate: validatedData.endDate ? new Date(validatedData.endDate) : null,
+      if (!req.body.target) {
+        console.error('Missing target in request');
+        return res.status(400).json({ message: "Missing target in request" });
+      }
+      
+      if (!req.body.category) {
+        console.error('Missing category in request');
+        return res.status(400).json({ message: "Missing category in request" });
+      }
+      
+      // Simple validations passed, build the goal object manually
+      const goal = {
+        userId: Number(req.body.userId),
+        title: String(req.body.title),
+        target: Number(req.body.target),
+        current: req.body.current ? Number(req.body.current) : 0,
+        unit: req.body.unit ? String(req.body.unit) : '',
+        category: String(req.body.category),
+        startDate: req.body.startDate ? new Date(req.body.startDate) : new Date(),
+        endDate: req.body.endDate ? new Date(req.body.endDate) : null,
       };
       
-      console.log('Formatted goal data for storage:', formattedData);
-      const goal = await storage.createGoal(formattedData);
+      console.log('Manual goal object:', goal);
+      const createdGoal = await storage.createGoal(goal);
       return res.status(201).json(goal);
     } catch (error: any) {
       // Get detailed validation errors
