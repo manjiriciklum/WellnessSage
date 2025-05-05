@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 import {
   Dialog,
@@ -49,8 +50,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function AddHealthDataModal({ isOpen, onClose }: AddHealthDataModalProps) {
-  // Hard-coded userId for demo purposes
-  const userId = 1;
+  const { user } = useAuth();
+  const userId = user?.id;
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

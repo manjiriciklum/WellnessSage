@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { type HealthData } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
 
 /**
  * Custom hook to fetch the current week's health data for a user
  */
 export function useWeeklyHealthData() {
-  // In a real app, we would get the user ID from auth context
-  // For demo purposes, we're using a hardcoded user ID
-  const userId = 1;
+  const { user } = useAuth();
+  const userId = user?.id;
   
   const {
     data: weeklyHealthData,

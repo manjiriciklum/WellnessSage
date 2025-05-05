@@ -2,11 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { type HealthData } from '@shared/schema';
 import { apiRequest } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 export function useHealthData() {
-  // In a real app, we would get the user ID from auth context
-  // For demo purposes, we're using a hardcoded user ID
-  const userId = 1;
+  const { user } = useAuth();
+  const userId = user?.id;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
