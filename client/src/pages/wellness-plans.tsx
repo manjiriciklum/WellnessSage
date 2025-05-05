@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { SimpleProgress } from '@/components/ui/simple-progress';
 import { Heart, Utensils, Moon, Brain } from 'lucide-react';
 
 export default function WellnessPlansPage() {
@@ -10,15 +11,15 @@ export default function WellnessPlansPage() {
       <h1 className="text-2xl font-headings font-bold mb-6">Wellness Plans</h1>
       
       <Tabs defaultValue="all">
-        <div className="flex justify-between items-center mb-4">
-          <TabsList>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <TabsList className="flex flex-wrap">
             <TabsTrigger value="all">All Plans</TabsTrigger>
             <TabsTrigger value="fitness">Fitness</TabsTrigger>
             <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
             <TabsTrigger value="sleep">Sleep</TabsTrigger>
             <TabsTrigger value="stress">Stress</TabsTrigger>
           </TabsList>
-          <Button>Create New Plan</Button>
+          <Button className="w-full sm:w-auto">Create New Plan</Button>
         </div>
         
         <TabsContent value="all">
@@ -38,8 +39,8 @@ export default function WellnessPlansPage() {
                   <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
                   <span className="font-medium">65%</span>
                 </div>
-                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-primary rounded-full" style={{ width: '65%' }}></div>
+                <div className="mb-4">
+                  <SimpleProgress value={65} maxValue={100} colorClass="bg-primary" />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>
@@ -60,8 +61,8 @@ export default function WellnessPlansPage() {
                   <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
                   <span className="font-medium">40%</span>
                 </div>
-                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-secondary rounded-full" style={{ width: '40%' }}></div>
+                <div className="mb-4">
+                  <SimpleProgress value={40} maxValue={100} colorClass="bg-secondary" />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>
@@ -82,8 +83,8 @@ export default function WellnessPlansPage() {
                   <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
                   <span className="font-medium">25%</span>
                 </div>
-                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-accent rounded-full" style={{ width: '25%' }}></div>
+                <div className="mb-4">
+                  <SimpleProgress value={25} maxValue={100} colorClass="bg-accent" />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>
@@ -104,8 +105,8 @@ export default function WellnessPlansPage() {
                   <span className="text-neutral-500 dark:text-neutral-300">Progress</span>
                   <span className="font-medium">10%</span>
                 </div>
-                <div className="h-2 bg-neutral-100 dark:bg-neutral-600 rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-error rounded-full" style={{ width: '10%' }}></div>
+                <div className="mb-4">
+                  <SimpleProgress value={10} maxValue={100} colorClass="bg-error" />
                 </div>
                 <Button variant="outline" className="w-full">View Plan</Button>
               </CardContent>
