@@ -108,6 +108,7 @@ export function RemindersAndGoals() {
               </div>
             ) : (
               <>
+                {/* Display goals from the API */}
                 {goals?.map((goal) => (
                   <div key={goal.id} className="mb-4 last:mb-0">
                     <div className="flex justify-between mb-1">
@@ -127,6 +128,49 @@ export function RemindersAndGoals() {
                     />
                   </div>
                 ))}
+                
+                {/* Dummy goals for demonstration */}
+                <div className="mb-4 last:mb-0">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-neutral-700 dark:text-neutral-200">Daily Walk</span>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                      7000/10000
+                    </span>
+                  </div>
+                  <Progress 
+                    value={70} 
+                    className="h-2" 
+                    indicatorClassName="bg-primary"
+                  />
+                </div>
+                
+                <div className="mb-4 last:mb-0">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-neutral-700 dark:text-neutral-200">Meditation</span>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                      3/5
+                    </span>
+                  </div>
+                  <Progress 
+                    value={60} 
+                    className="h-2" 
+                    indicatorClassName="bg-secondary"
+                  />
+                </div>
+                
+                <div className="mb-4 last:mb-0">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-neutral-700 dark:text-neutral-200">Sleep Duration</span>
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                      6/8
+                    </span>
+                  </div>
+                  <Progress 
+                    value={75} 
+                    className="h-2" 
+                    indicatorClassName="bg-error"
+                  />
+                </div>
               </>
             )}
           </CardContent>
