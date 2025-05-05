@@ -63,20 +63,61 @@ export const wearableDevices = pgTable("wearable_devices", {
   userId: integer("user_id").notNull(),
   deviceName: text("device_name").notNull(),
   deviceType: text("device_type").notNull(),
+  deviceModel: text("device_model"),
+  manufacturer: text("manufacturer"),
+  serialNumber: text("serial_number"),
+  firmwareVersion: text("firmware_version"),
+  batteryLevel: integer("battery_level"),
   isConnected: boolean("is_connected").notNull().default(false),
-  lastSynced: timestamp("last_synced")
+  lastSynced: timestamp("last_synced"),
+  capabilities: json("capabilities").default({}),
+  connectionSettings: json("connection_settings").default({}),
 });
 
 export const insertWearableDeviceSchema = createInsertSchema(wearableDevices).pick({
   userId: true,
   deviceName: true,
   deviceType: true,
+  deviceModel: true,
+  manufacturer: true,
+  serialNumber: true,
+  firmwareVersion: true,
+  batteryLevel: true,
   isConnected: true,
-  lastSynced: true
+  lastSynced: true,
+  capabilities: true,
+  connectionSettings: true
 });
 
 export type InsertWearableDevice = z.infer<typeof insertWearableDeviceSchema>;
 export type WearableDevice = typeof wearableDevices.$inferSelect;
+
+// Define capability types for wearable devices
+export type DeviceCapabilities = {
+  heartRate?: boolean;
+  stepCount?: boolean;
+  caloriesBurned?: boolean;
+  sleep?: boolean;
+  bloodOxygen?: boolean;
+  ecg?: boolean;
+  temperature?: boolean;
+  stress?: boolean;
+  bloodPressure?: boolean;
+  breathingRate?: boolean;
+  bodyFatPercentage?: boolean;
+  weight?: boolean;
+};
+
+export type DeviceConnectionSettings = {
+  connectionType: 'bluetooth' | 'wifi' | 'cellular' | 'usb';
+  autoSync: boolean;
+  syncInterval?: number; // in minutes
+  dataPermissions: {
+    shareHealthData: boolean;
+    shareLocation: boolean;
+    shareSleepData: boolean;
+  };
+};
 
 // Wellness Plan Model
 export const wellnessPlans = pgTable("wellness_plans", {
