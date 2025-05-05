@@ -1,26 +1,55 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Plus } from 'lucide-react';
 import { type Reminder, type Goal } from '@shared/schema';
 import { calculateProgress } from '@/lib/utils';
+import { AddReminderModal } from './add-reminder-modal';
+import { AddGoalModal } from './add-goal-modal';
+import { useAuth } from '@/hooks/use-auth';
 
 export function RemindersAndGoals() {
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id;
+
   const { data: reminders, isLoading: remindersLoading } = useQuery<Reminder[]>({
-    queryKey: ['/api/users/1/reminders'],
+    queryKey: [`/api/users/${userId}/reminders`],
+    enabled: !!userId,
   });
 
   const { data: goals, isLoading: goalsLoading } = useQuery<Goal[]>({
-    queryKey: ['/api/users/1/goals'],
+    queryKey: [`/api/users/${userId}/goals`],
+    enabled: !!userId,
   });
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white">Reminders & Goals</h2>
-        <Button variant="link" className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0">Add New</Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsReminderModalOpen(true)}
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1 text-sm"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add Reminder</span>
+          </Button>
+          <Button 
+            onClick={() => setIsGoalModalOpen(true)}
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1 text-sm"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add Goal</span>
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -103,6 +132,17 @@ export function RemindersAndGoals() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Modals */}
+      <AddReminderModal 
+        isOpen={isReminderModalOpen}
+        onClose={() => setIsReminderModalOpen(false)}
+      />
+      
+      <AddGoalModal 
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+      />
     </div>
   );
 }
