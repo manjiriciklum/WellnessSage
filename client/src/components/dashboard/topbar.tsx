@@ -1,7 +1,8 @@
 import React from 'react';
-import { Bell, MoreVertical } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
+import { NotificationPanel } from '@/components/notifications/notification-panel';
 
 interface TopBarProps {
   title: string;
@@ -17,9 +18,7 @@ export function TopBar({ title }: TopBarProps) {
         <p className="text-sm text-neutral-500 dark:text-neutral-300">{today}</p>
       </div>
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" className="mr-2 text-neutral-500 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-full">
-          <Bell size={20} />
-        </Button>
+        <NotificationPanel />
         <Button variant="ghost" size="icon" className="text-neutral-500 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-600 rounded-full">
           <MoreVertical size={20} />
         </Button>
