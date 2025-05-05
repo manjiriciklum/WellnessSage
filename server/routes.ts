@@ -64,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a modified schema that makes most fields optional
       const modifiedSchema = z.object({
         userId: z.number(),
-        date: z.string().nullable().optional(),
+        date: z.string().or(z.date()).nullable().optional(),
         steps: z.number().nullable().optional(),
         activeMinutes: z.number().nullable().optional(),
         calories: z.number().nullable().optional(),
@@ -79,16 +79,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = modifiedSchema.parse(req.body);
       console.log('Validated health data:', JSON.stringify(validatedData));
       
-      // Ensure date is a valid date object if present
-      if (validatedData.date) {
-        validatedData.date = new Date(validatedData.date);
-      }
+      // Create a properly formatted object for storage
+      const formattedData = {
+        ...validatedData,
+        // Ensure date is a Date object
+        date: validatedData.date ? new Date(validatedData.date) : new Date(),
+        // Default empty object for healthMetrics if not provided
+        healthMetrics: validatedData.healthMetrics || {}
+      };
       
-      const healthData = await storage.createHealthData(validatedData);
+      const healthData = await storage.createHealthData(formattedData);
       return res.status(201).json(healthData);
-    } catch (error) {
+    } catch (error: any) { // Type error as 'any' to access message property
       console.error('Health data validation error:', error);
-      return res.status(400).json({ message: "Invalid health data", error: error.message });
+      return res.status(400).json({ 
+        message: "Invalid health data", 
+        error: error?.message || String(error) 
+      });
     }
   });
 

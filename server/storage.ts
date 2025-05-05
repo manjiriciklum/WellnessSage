@@ -198,16 +198,41 @@ export class MemStorage implements IStorage {
   async createHealthData(insertData: InsertHealthData): Promise<HealthData> {
     const id = this.healthDataId++;
     
+    // Normalize the data before encryption
+    const normalizedData = {
+      userId: insertData.userId,
+      date: insertData.date instanceof Date ? insertData.date : new Date(),
+      steps: insertData.steps ?? null,
+      activeMinutes: insertData.activeMinutes ?? null,
+      calories: insertData.calories ?? null,
+      sleepHours: insertData.sleepHours ?? null,
+      sleepQuality: insertData.sleepQuality ?? null,
+      heartRate: insertData.heartRate ?? null,
+      healthScore: insertData.healthScore ?? null,
+      stressLevel: insertData.stressLevel ?? null,
+      healthMetrics: insertData.healthMetrics ?? {}
+    };
+    
     // Encrypt sensitive health metrics for HIPAA compliance
-    let healthMetrics = typeof insertData.healthMetrics === 'string' 
-      ? insertData.healthMetrics 
-      : JSON.stringify(insertData.healthMetrics);
+    let healthMetricsString = typeof normalizedData.healthMetrics === 'string' 
+      ? normalizedData.healthMetrics 
+      : JSON.stringify(normalizedData.healthMetrics || {});
       
-    const { encryptedData, iv, authTag } = encryptData(healthMetrics);
+    const { encryptedData, iv, authTag } = encryptData(healthMetricsString);
     
     // Store encrypted data with metadata
-    const encryptedHealthData = {
-      ...insertData,
+    const healthData: HealthData = { 
+      id,
+      userId: normalizedData.userId,
+      date: normalizedData.date,
+      steps: normalizedData.steps,
+      activeMinutes: normalizedData.activeMinutes,
+      calories: normalizedData.calories,
+      sleepHours: normalizedData.sleepHours,
+      sleepQuality: normalizedData.sleepQuality,
+      heartRate: normalizedData.heartRate,
+      healthScore: normalizedData.healthScore,
+      stressLevel: normalizedData.stressLevel,
       healthMetrics: {
         data: encryptedData,
         iv,
@@ -216,13 +241,12 @@ export class MemStorage implements IStorage {
       }
     };
     
-    const data: HealthData = { ...encryptedHealthData, id };
-    this.healthData.set(id, data);
+    this.healthData.set(id, healthData);
     
     // Log audit event for HIPAA compliance
     logAuditEvent(insertData.userId, 'create', 'healthData', id, 'Created new health data record');
     
-    return data;
+    return healthData;
   }
 
   // Wearable Device methods

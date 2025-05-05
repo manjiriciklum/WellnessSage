@@ -36,7 +36,11 @@ const AUDIT_LOG_DIR = path.join(__dirname, '../logs');
  * @param data - Data to encrypt
  * @returns Encrypted data with IV and auth tag
  */
-export function encryptData(data: string): { encryptedData: string; iv: string; authTag: string } {
+export function encryptData(data: string | any): { encryptedData: string; iv: string; authTag: string } {
+  // Convert data to string if it's not already
+  const stringData = typeof data === 'string' ? data : 
+    (data === undefined || data === null) ? '{}' : JSON.stringify(data);
+  
   // Create IV
   const iv = crypto.randomBytes(16);
   
@@ -48,7 +52,7 @@ export function encryptData(data: string): { encryptedData: string; iv: string; 
   );
   
   // Encrypt data
-  let encrypted = cipher.update(data, 'utf8', 'hex');
+  let encrypted = cipher.update(stringData, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   
   // Get authentication tag (for GCM mode)
