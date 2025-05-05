@@ -24,7 +24,7 @@ export function FindDoctor() {
   };
 
   return (
-    <div className="md:col-span-2">
+    <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white">Find a Doctor</h2>
         <Button variant="link" className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0">View All</Button>
@@ -89,7 +89,7 @@ export function FindDoctor() {
                 <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                     <Avatar className="w-16 h-16">
-                      <AvatarImage src={doctor.profileImage} alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} />
+                      <AvatarImage src={doctor.profileImage || ''} alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} />
                       <AvatarFallback>{doctor.firstName[0]}{doctor.lastName[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">

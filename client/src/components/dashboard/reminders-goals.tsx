@@ -6,7 +6,6 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle } from 'lucide-react';
 import { type Reminder, type Goal } from '@shared/schema';
 import { calculateProgress } from '@/lib/utils';
-import { ConnectedDevices } from './connected-devices';
 
 export function RemindersAndGoals() {
   const { data: reminders, isLoading: remindersLoading } = useQuery<Reminder[]>({
@@ -100,10 +99,7 @@ export function RemindersAndGoals() {
               ))}
             </>
           )}
-          
-          <div className="mt-6">
-            <ConnectedDevices />
-          </div>
+
         </CardContent>
       </Card>
     </div>

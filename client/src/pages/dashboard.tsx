@@ -28,21 +28,28 @@ export default function Dashboard() {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <WelcomeSection />
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      
+      {/* Top section - Health overview and Health actions */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8">
           <HealthOverview />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-4">
           <HealthActions />
         </div>
       </div>
-      <AiInsights />
       
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
+      {/* Middle section - AI Insights */}
+      <div className="mt-8">
+        <AiInsights />
+      </div>
+      
+      {/* Bottom section - Find doctor and Reminders/Goals */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4">
           <FindDoctor />
         </div>
-        <div className="md:col-span-1 lg:col-span-2">
+        <div className="lg:col-span-8">
           <RemindersAndGoals />
         </div>
       </div>

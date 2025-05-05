@@ -34,8 +34,8 @@ export function getTimeOfDay(): string {
   return "evening";
 }
 
-export function calculateProgress(current: number, target: number): number {
-  if (target === 0) return 0;
+export function calculateProgress(current: number | null, target: number | null): number {
+  if (!current || !target || target === 0) return 0;
   return Math.min(100, (current / target) * 100);
 }
 
