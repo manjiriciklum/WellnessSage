@@ -101,9 +101,9 @@ export function FindDoctor() {
                       </p>
                       <div className="flex items-center mt-1">
                         <StarRating 
-                          value={doctor.rating} 
+                          value={doctor.rating || 0} 
                           showValue={true}
-                          reviewCount={doctor.reviewCount}
+                          reviewCount={doctor.reviewCount || undefined}
                         />
                       </div>
                     </div>

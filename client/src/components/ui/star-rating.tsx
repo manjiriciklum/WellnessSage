@@ -3,12 +3,12 @@ import { cn } from '@/lib/utils';
 import { Star, StarHalf } from 'lucide-react';
 
 interface StarRatingProps {
-  value: number;
+  value: number | null;
   max?: number;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   showValue?: boolean;
-  reviewCount?: number;
+  reviewCount?: number | null;
 }
 
 export function StarRating({
@@ -19,9 +19,12 @@ export function StarRating({
   showValue = false,
   reviewCount,
 }: StarRatingProps) {
+  // Handle null value
+  const safeValue = value ?? 0;
+  
   // Calculate whole stars, half stars, and empty stars
-  const filledStars = Math.floor(value);
-  const hasHalfStar = value % 1 >= 0.5;
+  const filledStars = Math.floor(safeValue);
+  const hasHalfStar = safeValue % 1 >= 0.5;
   const emptyStars = max - filledStars - (hasHalfStar ? 1 : 0);
 
   const sizes = {
