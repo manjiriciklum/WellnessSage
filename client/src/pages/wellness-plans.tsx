@@ -76,7 +76,7 @@ export default function WellnessPlansPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4 text-sm break-words">
                   Improve sleep quality through consistent bedtime routines and environment optimization.
                 </p>
                 <div className="flex justify-between text-sm mb-4">
@@ -98,7 +98,7 @@ export default function WellnessPlansPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4 text-sm break-words">
                   Learn techniques to reduce stress through meditation, breathing exercises, and mindfulness.
                 </p>
                 <div className="flex justify-between text-sm mb-4">
