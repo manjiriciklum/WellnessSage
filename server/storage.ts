@@ -477,8 +477,21 @@ export class MemStorage implements IStorage {
 
   async createGoal(insertGoal: InsertGoal): Promise<Goal> {
     const id = this.goalId++;
-    const goal: Goal = { ...insertGoal, id };
+    // Ensure we have default values for nullable fields
+    const goal: Goal = {
+      id,
+      userId: insertGoal.userId,
+      title: insertGoal.title,
+      target: insertGoal.target,
+      category: insertGoal.category,
+      // Handle optional fields with defaults
+      current: insertGoal.current ?? 0,
+      unit: insertGoal.unit ?? '',
+      startDate: insertGoal.startDate ?? new Date(),
+      endDate: insertGoal.endDate ?? null
+    };
     this.goals.set(id, goal);
+    console.log('Goal created and stored:', goal);
     return goal;
   }
 

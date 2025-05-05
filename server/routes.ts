@@ -400,39 +400,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Goal data received:', JSON.stringify(req.body));
       
-      // Create a modified schema that makes optional fields nullable
-      const modifiedSchema = z.object({
+      // Create a simple validation schema that handles both missing and null values
+      const goalSchema = z.object({
         userId: z.number(),
         title: z.string().min(1, 'Title is required'),
-        target: z.number().positive('Target must be greater than 0'),
-        current: z.number().optional().default(0),
+        target: z.coerce.number().positive('Target must be greater than 0'),
+        current: z.coerce.number().nonnegative().optional().default(0),
         unit: z.string().optional().default(''),
         category: z.string().min(1, 'Category is required'),
-        startDate: z.string().or(z.date()).nullable().optional(),
-        endDate: z.string().or(z.date()).nullable().optional(),
+        startDate: z.string().or(z.date()).optional().nullable(),
+        endDate: z.string().or(z.date()).optional().nullable(),
       });
       
-      const validatedData = modifiedSchema.parse(req.body);
+      // Validate and transform input data
+      const parsedData = goalSchema.safeParse(req.body);
+      
+      if (!parsedData.success) {
+        console.error('Goal validation errors:', parsedData.error.errors);
+        return res.status(400).json({
+          message: "Invalid goal data",
+          errors: parsedData.error.errors,
+        });
+      }
+      
+      const validatedData = parsedData.data;
       console.log('Validated goal data:', validatedData);
       
       // Create a properly formatted object for storage
       const formattedData = {
-        ...validatedData,
-        // Ensure startDate is a Date object
-        startDate: validatedData.startDate ? new Date(validatedData.startDate) : new Date(),
-        // Ensure endDate is a Date object if provided, otherwise null
-        endDate: validatedData.endDate ? new Date(validatedData.endDate) : null,
-        // Ensure unit has a default value if not provided
+        userId: validatedData.userId,
+        title: validatedData.title,
+        target: validatedData.target,
+        current: validatedData.current || 0,
         unit: validatedData.unit || '',
+        category: validatedData.category,
+        startDate: validatedData.startDate ? new Date(validatedData.startDate) : new Date(),
+        endDate: validatedData.endDate ? new Date(validatedData.endDate) : null,
       };
       
+      console.log('Formatted goal data for storage:', formattedData);
       const goal = await storage.createGoal(formattedData);
       return res.status(201).json(goal);
     } catch (error: any) {
+      // Get detailed validation errors
+      const errorDetails = error.errors ? JSON.stringify(error.errors) : error.message || String(error);
       console.error('Goal validation error:', error);
+      console.error('Goal validation error details:', errorDetails);
+      console.error('Received goal data:', JSON.stringify(req.body));
+      
       return res.status(400).json({ 
         message: "Invalid goal data", 
-        error: error?.message || String(error) 
+        error: error?.message || String(error),
+        details: error.errors || error.issues || null,
+        receivedData: req.body
       });
     }
   });
