@@ -72,6 +72,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const latestHealthData = await storage.getLatestHealthData(userId);
     return res.json(latestHealthData);
   });
+  
+  app.get("/api/users/:userId/health-data/weekly", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    logAuditEvent(userId, "view", "healthData", "multiple", "weekly data");
+    const healthData = await storage.getHealthDataByUserId(userId);
+    
+    // Filter to only get the current week's data
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Start from Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // End on Saturday
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    const weeklyData = healthData.filter(data => {
+      const dataDate = new Date(data.date);
+      return dataDate >= startOfWeek && dataDate <= endOfWeek;
+    });
+    
+    // Sort by date, oldest first
+    weeklyData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    return res.json(weeklyData);
+  });
 
   // Wearable devices routes
   app.get("/api/users/:userId/wearable-devices", async (req, res) => {
