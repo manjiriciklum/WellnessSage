@@ -26,17 +26,25 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <WelcomeSection />
-      <HealthOverview />
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <HealthOverview />
+        </div>
+        <div className="lg:col-span-1">
+          <HealthActions />
+        </div>
+      </div>
       <AiInsights />
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <FindDoctor />
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="md:col-span-1">
+          <FindDoctor />
+        </div>
+        <div className="md:col-span-1 lg:col-span-2">
           <RemindersAndGoals />
         </div>
-        <HealthActions />
       </div>
     </div>
   );
