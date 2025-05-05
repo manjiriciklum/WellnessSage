@@ -4,6 +4,15 @@ import { logAuditEvent } from '../security';
 // Initialize MongoDB connection URI
 let MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URL;
 
+// Set dummy MongoDB parameters for development
+if (process.env.NODE_ENV === 'development' && !process.env.MONGODB_URI && !process.env.MONGODB_HOST) {
+  process.env.MONGODB_USERNAME = 'dummy_user';
+  process.env.MONGODB_PASSWORD = 'dummy_password';
+  process.env.MONGODB_HOST = 'dummycluster.mongodb.net';
+  process.env.MONGODB_DATABASE = 'healthcare_db';
+  console.log('Using dummy MongoDB credentials for development');
+}
+
 // Check if we need to create MongoDB connection URL from individual credentials
 if (!MONGODB_URI && process.env.MONGODB_USERNAME && process.env.MONGODB_PASSWORD && process.env.MONGODB_HOST) {
   const username = encodeURIComponent(process.env.MONGODB_USERNAME);
@@ -58,17 +67,26 @@ export async function connectToDatabase(retryAttempts = 3, retryDelay = 3000) {
       setupMongooseEventListeners();
       
     } catch (error) {
-      console.error(`Error connecting to MongoDB (${attemptsLeft} attempts left):`, error);
-      
-      // If we have attempts left, retry after delay
-      if (attemptsLeft > 0) {
-        console.log(`Retrying MongoDB connection in ${retryDelay/1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-        return attemptConnection(attemptsLeft - 1);
-      } else {
-        console.warn('Maximum MongoDB connection retry attempts reached.');
+      // If this is a development environment with dummy credentials, provide a helpful message
+      if (process.env.NODE_ENV === 'development' && process.env.MONGODB_USERNAME === 'dummy_user') {
+        console.warn('Failed to connect to MongoDB with dummy credentials.');
+        console.warn('This is expected in development. You can provide real MongoDB credentials via environment variables when needed.');
+        // Skip retries with dummy credentials to speed up startup
         console.warn('Application will continue with in-memory storage fallback.');
-        // Allow app to continue with in-memory storage
+        return;
+      } else {
+        console.error(`Error connecting to MongoDB (${attemptsLeft} attempts left):`, error);
+        
+        // If we have attempts left, retry after delay
+        if (attemptsLeft > 0) {
+          console.log(`Retrying MongoDB connection in ${retryDelay/1000} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          return attemptConnection(attemptsLeft - 1);
+        } else {
+          console.warn('Maximum MongoDB connection retry attempts reached.');
+          console.warn('Application will continue with in-memory storage fallback.');
+          // Allow app to continue with in-memory storage
+        }
       }
     }
   };

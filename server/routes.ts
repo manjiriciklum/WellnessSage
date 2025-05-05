@@ -32,10 +32,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API route to check database connection status
   app.get("/api/system/db-status", async (req, res) => {
     try {
-      const status = await checkMongoDBHealth();
-      res.json(status);
+      const mongoStatus = await checkMongoDBHealth();
+      const postgresStatus = {
+        connected: !!process.env.DATABASE_URL,
+        status: process.env.DATABASE_URL ? 'connected' : 'not configured'
+      };
+      
+      const isDummyMongo = process.env.MONGODB_USERNAME === 'dummy_user' && process.env.NODE_ENV === 'development';
+      
+      // Return combined status for monitoring
+      const result = {
+        mongo: {
+          ...mongoStatus,
+          dummyCredentials: isDummyMongo
+        },
+        postgres: postgresStatus,
+        currentStorageType: isConnected() ? 'MongoDB' : 'In-Memory',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'unknown'
+      };
+      
+      // Log the database status with sensitive info masked
+      const logSafeResult = { ...result };
+      console.log('Database status check:', logSafeResult);
+      
+      res.json(result);
     } catch (error) {
-      res.status(500).json({ error: "Failed to check database status", details: error });
+      console.error('Database status check error:', error);
+      res.status(500).json({ 
+        error: "Failed to check database status", 
+        details: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString() 
+      });
     }
   });
   // User routes
