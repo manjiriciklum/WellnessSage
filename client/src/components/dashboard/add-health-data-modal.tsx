@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { insertHealthDataSchema } from '@shared/schema';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 import {
   Dialog,
@@ -46,8 +46,6 @@ const formSchema = insertHealthDataSchema.extend({
 type FormValues = z.infer<typeof formSchema>;
 
 export function AddHealthDataModal({ isOpen, onClose }: AddHealthDataModalProps) {
-  const { toast } = useToast();
-  
   // Hard-coded userId for demo purposes
   const userId = 1;
   
