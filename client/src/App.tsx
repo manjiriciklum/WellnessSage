@@ -14,6 +14,7 @@ import AlertsRemindersPage from "@/pages/alerts-reminders";
 import HealthCoachPage from "@/pages/health-coach";
 import SettingsPage from "@/pages/settings";
 import { DashboardLayout } from "@/components/dashboard/layout";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 function Router() {
   return (
@@ -35,13 +36,19 @@ function Router() {
 }
 
 function App() {
+  // Using a fixed user ID (1) for demo purposes
+  // In a real application, this would come from authentication
+  const userId = 1;
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="healthai-theme">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <NotificationProvider userId={userId}>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </NotificationProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
