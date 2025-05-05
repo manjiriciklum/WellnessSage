@@ -702,6 +702,22 @@ export class MemStorage implements IStorage {
       {
         id: 3,
         userId: 1,
+        deviceName: 'Samsung Galaxy Watch 6',
+        deviceType: 'watch',
+        isConnected: false,
+        lastSynced: null
+      },
+      {
+        id: 4,
+        userId: 1,
+        deviceName: 'Samsung Galaxy Watch Ultra',
+        deviceType: 'watch',
+        isConnected: false,
+        lastSynced: null
+      },
+      {
+        id: 5,
+        userId: 1,
         deviceName: 'Smart Scale',
         deviceType: 'scale',
         isConnected: false,
