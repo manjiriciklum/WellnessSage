@@ -12,12 +12,12 @@ export default function WellnessPlansPage() {
       
       <Tabs defaultValue="all">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <TabsList className="flex flex-wrap">
-            <TabsTrigger value="all">All Plans</TabsTrigger>
-            <TabsTrigger value="fitness">Fitness</TabsTrigger>
-            <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
-            <TabsTrigger value="sleep">Sleep</TabsTrigger>
-            <TabsTrigger value="stress">Stress</TabsTrigger>
+          <TabsList className="h-auto flex-wrap">
+            <TabsTrigger value="all" className="text-xs sm:text-sm px-2 sm:px-4">All Plans</TabsTrigger>
+            <TabsTrigger value="fitness" className="text-xs sm:text-sm px-2 sm:px-4">Fitness</TabsTrigger>
+            <TabsTrigger value="nutrition" className="text-xs sm:text-sm px-2 sm:px-4">Nutrition</TabsTrigger>
+            <TabsTrigger value="sleep" className="text-xs sm:text-sm px-2 sm:px-4">Sleep</TabsTrigger>
+            <TabsTrigger value="stress" className="text-xs sm:text-sm px-2 sm:px-4">Stress</TabsTrigger>
           </TabsList>
           <Button className="w-full sm:w-auto">Create New Plan</Button>
         </div>
@@ -28,11 +28,11 @@ export default function WellnessPlansPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Heart className="text-primary" size={18} />
-                  <CardTitle className="text-lg">Cardio Boost</CardTitle>
+                  <CardTitle className="text-lg text-wrap break-words">Cardio Boost</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4 text-sm break-words">
                   A 4-week program to improve cardiovascular health through progressive workouts.
                 </p>
                 <div className="flex justify-between text-sm mb-4">
@@ -50,11 +50,11 @@ export default function WellnessPlansPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Utensils className="text-secondary" size={18} />
-                  <CardTitle className="text-lg">Balanced Nutrition</CardTitle>
+                  <CardTitle className="text-lg text-wrap break-words">Balanced Nutrition</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-neutral-600 dark:text-neutral-200 mb-4">
+                <p className="text-neutral-600 dark:text-neutral-200 mb-4 text-sm break-words">
                   A customized meal plan with protein-rich breakfasts and balanced macros throughout the day.
                 </p>
                 <div className="flex justify-between text-sm mb-4">
@@ -72,7 +72,7 @@ export default function WellnessPlansPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Moon className="text-accent" size={18} />
-                  <CardTitle className="text-lg">Better Sleep Habits</CardTitle>
+                  <CardTitle className="text-lg text-wrap break-words">Better Sleep Habits</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -94,7 +94,7 @@ export default function WellnessPlansPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Brain className="text-error" size={18} />
-                  <CardTitle className="text-lg">Stress Management</CardTitle>
+                  <CardTitle className="text-lg text-wrap break-words">Stress Management</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
