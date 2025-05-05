@@ -32,7 +32,13 @@ export async function syncWearableHealthData(deviceId: number): Promise<HealthDa
     const newHealthData: InsertHealthData = {
       userId: device.userId,
       date: new Date(),
-      healthMetrics: simulatedData
+      healthMetrics: simulatedData,
+      // Set some basic values based on the simulated data
+      steps: simulatedData.steps || null,
+      heartRate: simulatedData.heartRate || null,
+      calories: simulatedData.calories || null,
+      sleepHours: simulatedData.sleep || null,
+      stressLevel: simulatedData.stressLevel || null
     };
     
     // Store the health data
@@ -294,8 +300,9 @@ function simulateHealthData(latestData: HealthData | undefined, capabilities: De
   
   if (capabilities.weight) {
     // If we have previous data, only change weight slightly
-    if (latestData?.healthMetrics?.weight) {
-      const prevWeight = parseFloat(latestData.healthMetrics.weight);
+    const prevHealthMetrics = latestData?.healthMetrics as Record<string, any> || {};
+    if (prevHealthMetrics.weight) {
+      const prevWeight = parseFloat(prevHealthMetrics.weight);
       baseData.weight = Math.round((prevWeight + (Math.random() * 0.6 - 0.3)) * 10) / 10;
     } else {
       baseData.weight = Math.round((70 + (Math.random() * 20 - 10)) * 10) / 10; // 60-80kg

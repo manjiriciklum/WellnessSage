@@ -890,7 +890,22 @@ export class MemStorage implements IStorage {
       sleepQuality: 72,
       heartRate: 68,
       healthScore: 85,
-      stressLevel: 35
+      stressLevel: 35,
+      healthMetrics: {
+        activityLevel: 3,
+        stepsGoal: 10000,
+        caloriesGoal: 2500,
+        sleepGoal: 8,
+        hydrationGoal: 2000,
+        heartRateMin: 58,
+        heartRateMax: 142,
+        deepSleep: 1.8,
+        remSleep: 1.5,
+        bloodOxygen: 98,
+        temperature: 36.6,
+        systolic: 120,
+        diastolic: 80
+      }
     };
     
     this.healthData.set(demoHealthData.id, demoHealthData);

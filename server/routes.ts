@@ -108,6 +108,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(device);
   });
 
+  // Import the wearable service functions
+  const { syncWearableHealthData, checkDeviceConnectivity, getAvailableFirmwareUpdates } = await import('./services/wearableService');
+
+  // Sync health data from a wearable device
+  app.post("/api/wearable-devices/:id/sync", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      const device = await storage.getWearableDevice(deviceId);
+      
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      
+      if (!device.isConnected) {
+        return res.status(400).json({ message: "Device is not connected" });
+      }
+      
+      const healthData = await syncWearableHealthData(deviceId);
+      
+      if (!healthData) {
+        return res.status(500).json({ message: "Failed to sync health data" });
+      }
+      
+      // Send a notification about successful sync
+      sendNotification(device.userId, {
+        type: 'success',
+        title: 'Data Synced',
+        message: `${device.deviceName} data has been synced successfully.`,
+        autoClose: 3000
+      });
+      
+      return res.json(healthData);
+    } catch (error) {
+      console.error('Error syncing health data:', error);
+      return res.status(500).json({ message: "Error syncing health data" });
+    }
+  });
+  
+  // Check device connectivity and status
+  app.get("/api/wearable-devices/:id/connectivity", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      const device = await storage.getWearableDevice(deviceId);
+      
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      
+      const connectivityStatus = await checkDeviceConnectivity(deviceId);
+      return res.json(connectivityStatus);
+    } catch (error) {
+      console.error('Error checking device connectivity:', error);
+      return res.status(500).json({ message: "Error checking device connectivity" });
+    }
+  });
+  
+  // Check for firmware updates
+  app.get("/api/wearable-devices/:id/firmware", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      const device = await storage.getWearableDevice(deviceId);
+      
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      
+      const firmwareStatus = await getAvailableFirmwareUpdates(deviceId);
+      return res.json(firmwareStatus);
+    } catch (error) {
+      console.error('Error checking firmware updates:', error);
+      return res.status(500).json({ message: "Error checking firmware updates" });
+    }
+  });
+  
+  // Get devices by capability
+  app.get("/api/wearable-devices/capability/:capability", async (req, res) => {
+    try {
+      const capability = req.params.capability;
+      const devices = await storage.getDevicesByCapability(capability);
+      return res.json(devices);
+    } catch (error) {
+      console.error('Error getting devices by capability:', error);
+      return res.status(500).json({ message: "Error retrieving devices" });
+    }
+  });
+
   // Wellness plans routes
   app.get("/api/users/:userId/wellness-plans", async (req, res) => {
     const userId = parseInt(req.params.userId);
