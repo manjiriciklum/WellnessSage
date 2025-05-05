@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { mongoStorage } from "./db/mongo-storage";
 import { isConnected } from "./db/mongodb";
@@ -336,5 +337,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Initialize WebSocket server for push notifications (alerts and reminders)
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store connected clients with their user IDs
+  const clients = new Map<number, Set<WebSocket>>();
+  
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('WebSocket client connected');
+    let userId: number | null = null;
+    
+    // Handle messages from clients
+    ws.on('message', (message: string) => {
+      try {
+        // Parse the message to get the user ID
+        const data = JSON.parse(message);
+        
+        if (data.type === 'register' && data.userId) {
+          userId = Number(data.userId);
+          
+          // Add this connection to the clients map
+          if (!clients.has(userId)) {
+            clients.set(userId, new Set());
+          }
+          clients.get(userId)?.add(ws);
+          
+          console.log(`WebSocket client registered for user ID: ${userId}`);
+          
+          // Send an initial set of pending notifications
+          sendPendingNotifications(userId, ws);
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+    
+    // Handle client disconnection
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      if (userId && clients.has(userId)) {
+        clients.get(userId)?.delete(ws);
+        
+        // If no more connections for this user, clean up
+        if (clients.get(userId)?.size === 0) {
+          clients.delete(userId);
+        }
+      }
+    });
+    
+    // Send a welcome message
+    ws.send(JSON.stringify({ type: 'info', message: 'Connected to healthcare notification service' }));
+  });
+  
+  // Function to send notifications to a specific user
+  function sendNotification(userId: number, notification: any) {
+    if (clients.has(userId)) {
+      const userClients = clients.get(userId);
+      if (userClients) {
+        const message = JSON.stringify(notification);
+        for (const client of userClients) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        }
+      }
+    }
+  }
+  
+  // Function to send pending notifications (reminders and alerts) to a user
+  async function sendPendingNotifications(userId: number, ws: WebSocket) {
+    try {
+      // Get pending reminders for the user
+      const reminders = await storage.getRemindersByUserId(userId);
+      const pendingReminders = reminders.filter(r => !r.isCompleted);
+      
+      if (pendingReminders.length > 0) {
+        // Only send if the connection is still open
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'reminders',
+            data: pendingReminders
+          }));
+        }
+      }
+      
+      // Get unread AI insights (alerts) for the user
+      const insights = await storage.getAiInsightsByUserId(userId);
+      const unreadInsights = insights.filter(i => !i.isRead);
+      
+      if (unreadInsights.length > 0) {
+        // Only send if the connection is still open
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'insights',
+            data: unreadInsights
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error sending pending notifications:', error);
+    }
+  }
+  
+  // Middleware to send push notifications when reminders are created
+  app.use((req, res, next) => {
+    const originalSend = res.send;
+    res.send = function(body) {
+      try {
+        // Check if this is a reminder creation response
+        if (req.method === 'POST' && req.path === '/api/reminders' && res.statusCode === 201) {
+          const reminder = JSON.parse(typeof body === 'string' ? body : body.toString());
+          if (reminder && reminder.userId) {
+            // Send push notification to the user
+            sendNotification(reminder.userId, {
+              type: 'new_reminder',
+              data: reminder
+            });
+          }
+        }
+        // Check if this is an AI insight creation response
+        else if (req.method === 'POST' && req.path === '/api/ai-insights' && res.statusCode === 201) {
+          const insight = JSON.parse(typeof body === 'string' ? body : body.toString());
+          if (insight && insight.userId) {
+            // Send push notification to the user
+            sendNotification(insight.userId, {
+              type: 'new_insight',
+              data: insight
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error in notification middleware:', error);
+      }
+      
+      return originalSend.call(this, body);
+    };
+    next();
+  });
+  
   return httpServer;
 }
