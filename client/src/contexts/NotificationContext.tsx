@@ -2,20 +2,23 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import notificationService from '@/lib/notificationService';
 import Notification from '@/components/ui/Notification';
 
-type NotificationType = 'info' | 'alert' | 'reminder' | 'success';
+type NotificationType = 'info' | 'warning' | 'success' | 'error';
 
 interface NotificationItem {
   id: string | number;
   title: string;
   message: string;
   type: NotificationType;
-  createdAt: Date;
+  timestamp: Date;
+  read: boolean;
 }
 
 interface NotificationContextType {
   notifications: NotificationItem[];
-  addNotification: (notification: Omit<NotificationItem, 'id' | 'createdAt'>) => void;
+  addNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp' | 'read'>) => void;
   removeNotification: (id: string | number) => void;
+  markAsRead: (id: string | number) => void;
+  markAllAsRead: () => void;
   clearNotifications: () => void;
 }
 
@@ -23,6 +26,8 @@ const NotificationContext = createContext<NotificationContextType>({
   notifications: [],
   addNotification: () => {},
   removeNotification: () => {},
+  markAsRead: () => {},
+  markAllAsRead: () => {},
   clearNotifications: () => {}
 });
 
@@ -33,6 +38,7 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, userId }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [showToast, setShowToast] = useState<boolean>(true);
   
   // Connect to WebSocket when userId is available
   useEffect(() => {
@@ -55,7 +61,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         addNotification({
           title: reminder.title,
           message: `${reminder.category} reminder: ${reminder.time}`,
-          type: 'reminder'
+          type: 'info'
         });
       });
     };
@@ -66,7 +72,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         addNotification({
           title: insight.title,
           message: insight.description,
-          type: 'alert'
+          type: 'warning'
         });
       });
     };
@@ -76,7 +82,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       addNotification({
         title: 'New Reminder',
         message: reminder.title,
-        type: 'reminder'
+        type: 'info'
       });
     };
     
@@ -85,7 +91,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       addNotification({
         title: 'New Health Insight',
         message: insight.title,
-        type: 'alert'
+        type: 'warning'
       });
     };
     
@@ -104,19 +110,35 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     };
   }, [userId]);
   
-  const addNotification = (notification: Omit<NotificationItem, 'id' | 'createdAt'>) => {
+  const addNotification = (notification: Omit<NotificationItem, 'id' | 'timestamp' | 'read'>) => {
     // Create a unique ID by combining timestamp with a random string
     const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const createdAt = new Date();
+    const timestamp = new Date();
     
     setNotifications(prev => [
       ...prev,
-      { ...notification, id, createdAt }
+      { ...notification, id, timestamp, read: false }
     ]);
   };
   
   const removeNotification = (id: string | number) => {
     setNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
+  
+  const markAsRead = (id: string | number) => {
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === id 
+          ? { ...notification, read: true } 
+          : notification
+      )
+    );
+  };
+  
+  const markAllAsRead = () => {
+    setNotifications(prev => 
+      prev.map(notification => ({ ...notification, read: true }))
+    );
   };
   
   const clearNotifications = () => {
@@ -129,24 +151,31 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         notifications,
         addNotification,
         removeNotification,
+        markAsRead,
+        markAllAsRead,
         clearNotifications
       }}
     >
       {children}
       
-      {/* Render notifications */}
-      <div className="fixed top-4 right-4 z-[9999] space-y-4 w-96 max-w-full pointer-events-auto">
-        {notifications.map(notification => (
-          <Notification
-            key={notification.id}
-            id={notification.id}
-            title={notification.title}
-            message={notification.message}
-            type={notification.type}
-            onClose={removeNotification}
-          />
-        ))}
-      </div>
+      {/* Render toast notifications only for unread ones */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-[9999] space-y-4 w-96 max-w-full pointer-events-auto">
+          {notifications
+            .filter(notification => !notification.read)
+            .slice(0, 3) // Only show the 3 most recent
+            .map(notification => (
+              <Notification
+                key={notification.id}
+                id={notification.id}
+                title={notification.title}
+                message={notification.message}
+                type={notification.type as any} // Type compatibility fix
+                onClose={() => markAsRead(notification.id)}
+              />
+            ))}
+        </div>
+      )}
     </NotificationContext.Provider>
   );
 };
