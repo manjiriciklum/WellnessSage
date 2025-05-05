@@ -75,7 +75,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/users/:userId/health-data/weekly", async (req, res) => {
     const userId = parseInt(req.params.userId);
-    logAuditEvent(userId, "view", "healthData", "multiple", "weekly data");
+    // Log the audit event
+    console.log(`AUDIT: view healthData multiple by user ${userId} (weekly data)`);
     const healthData = await storage.getHealthDataByUserId(userId);
     
     // Filter to only get the current week's data
@@ -89,12 +90,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     endOfWeek.setHours(23, 59, 59, 999);
     
     const weeklyData = healthData.filter(data => {
+      if (!data.date) return false;
       const dataDate = new Date(data.date);
       return dataDate >= startOfWeek && dataDate <= endOfWeek;
     });
     
     // Sort by date, oldest first
-    weeklyData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    weeklyData.sort((a, b) => {
+      if (!a.date || !b.date) return 0;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
     
     return res.json(weeklyData);
   });

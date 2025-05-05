@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AiInsights } from '@/components/dashboard/ai-insights';
 import { HealthOverview } from '@/components/dashboard/health-overview';
+import { HealthTrends } from '@/components/dashboard/health-trends';
 
 export default function HealthInsightsPage() {
   return (
@@ -14,13 +15,7 @@ export default function HealthInsightsPage() {
       
       <section className="mb-8">
         <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white mb-4">Health Trends</h2>
-        <Card className="shadow-sm">
-          <CardContent className="p-5">
-            <p className="text-neutral-600 dark:text-neutral-200">
-              Trends visualization will appear here in the complete implementation.
-            </p>
-          </CardContent>
-        </Card>
+        <HealthTrends />
       </section>
     </div>
   );
