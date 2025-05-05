@@ -2,22 +2,14 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { CustomProgress } from '@/components/ui/custom-progress';
 import { useHealthData } from '@/hooks/use-health-data';
 
 export function ActivityMetrics() {
   const { healthData, isLoading } = useHealthData();
   
-  // Ensure values are numbers and properly calculated for progress bars
-  const stepsProgress = healthData?.steps ? Math.min((healthData.steps / 10000) * 100, 100) : 0;
-  const activeMinutesProgress = healthData?.activeMinutes ? Math.min((healthData.activeMinutes / 60) * 100, 100) : 0;
-  const caloriesProgress = healthData?.calories ? Math.min((healthData.calories / 2500) * 100, 100) : 0;
-  
   // Log values for debugging
   console.log('Health Data:', healthData);
-  console.log('Steps Progress:', stepsProgress);
-  console.log('Active Minutes Progress:', activeMinutesProgress);
-  console.log('Calories Progress:', caloriesProgress);
   
   return (
     <Card className="shadow-sm">
@@ -36,8 +28,8 @@ export function ActivityMetrics() {
                 {healthData?.steps?.toLocaleString() || '0'} / 10,000
               </span>
             </div>
-            <Progress value={stepsProgress} className="h-2" 
-              indicatorClassName="bg-primary" />
+            <CustomProgress value={healthData?.steps || 0} maxValue={10000} className="h-2" 
+              barClassName="bg-primary" />
           </div>
           <div>
             <div className="flex justify-between mb-1">
@@ -46,8 +38,8 @@ export function ActivityMetrics() {
                 {healthData?.activeMinutes || '0'} / 60
               </span>
             </div>
-            <Progress value={activeMinutesProgress} className="h-2" 
-              indicatorClassName="bg-secondary" />
+            <CustomProgress value={healthData?.activeMinutes || 0} maxValue={60} className="h-2" 
+              barClassName="bg-secondary" />
           </div>
           <div>
             <div className="flex justify-between mb-1">
@@ -56,8 +48,8 @@ export function ActivityMetrics() {
                 {healthData?.calories?.toLocaleString() || '0'} / 2,500
               </span>
             </div>
-            <Progress value={caloriesProgress} className="h-2" 
-              indicatorClassName="bg-accent" />
+            <CustomProgress value={healthData?.calories || 0} maxValue={2500} className="h-2" 
+              barClassName="bg-accent" />
           </div>
         </div>
       </CardContent>
