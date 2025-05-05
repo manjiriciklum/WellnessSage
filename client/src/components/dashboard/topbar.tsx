@@ -2,6 +2,7 @@ import React from 'react';
 import { formatDate } from '@/lib/utils';
 import { NotificationPanel } from '@/components/notifications/notification-panel';
 import { ActionMenu } from './action-menu';
+import { UserProfile } from '@/components/auth/user-profile';
 
 interface TopBarProps {
   title: string;
