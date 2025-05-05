@@ -135,7 +135,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       {children}
       
       {/* Render notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-4">
+      <div className="fixed top-4 right-4 z-[9999] space-y-4 w-96 max-w-full pointer-events-auto">
         {notifications.map(notification => (
           <Notification
             key={notification.id}

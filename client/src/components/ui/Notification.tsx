@@ -46,35 +46,35 @@ const Notification: React.FC<NotificationProps> = ({
       case 'alert':
         return {
           icon: <AlertTriangle className="h-5 w-5" />,
-          bgColor: 'bg-red-100',
-          textColor: 'text-red-800',
-          borderColor: 'border-red-200',
-          iconColor: 'text-red-600'
+          bgColor: 'bg-red-100 dark:bg-red-900/90',
+          textColor: 'text-red-900 dark:text-red-50',
+          borderColor: 'border-red-400 dark:border-red-600',
+          iconColor: 'text-red-700 dark:text-red-200'
         };
       case 'reminder':
         return {
           icon: <Bell className="h-5 w-5" />,
-          bgColor: 'bg-blue-100',
-          textColor: 'text-blue-800',
-          borderColor: 'border-blue-200',
-          iconColor: 'text-blue-600'
+          bgColor: 'bg-blue-100 dark:bg-blue-900/90',
+          textColor: 'text-blue-900 dark:text-blue-50',
+          borderColor: 'border-blue-400 dark:border-blue-600',
+          iconColor: 'text-blue-700 dark:text-blue-200'
         };
       case 'success':
         return {
           icon: <CheckCircle className="h-5 w-5" />,
-          bgColor: 'bg-green-100',
-          textColor: 'text-green-800',
-          borderColor: 'border-green-200',
-          iconColor: 'text-green-600'
+          bgColor: 'bg-green-100 dark:bg-green-900/90',
+          textColor: 'text-green-900 dark:text-green-50',
+          borderColor: 'border-green-400 dark:border-green-600',
+          iconColor: 'text-green-700 dark:text-green-200'
         };
       case 'info':
       default:
         return {
           icon: <Bell className="h-5 w-5" />,
-          bgColor: 'bg-gray-100',
-          textColor: 'text-gray-800',
-          borderColor: 'border-gray-200',
-          iconColor: 'text-gray-600'
+          bgColor: 'bg-indigo-100 dark:bg-indigo-900/90',
+          textColor: 'text-indigo-900 dark:text-indigo-50',
+          borderColor: 'border-indigo-400 dark:border-indigo-600',
+          iconColor: 'text-indigo-700 dark:text-indigo-200'
         };
     }
   };
@@ -89,7 +89,7 @@ const Notification: React.FC<NotificationProps> = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className={`w-full max-w-sm rounded-lg shadow-lg border overflow-hidden ${styles.bgColor} ${styles.borderColor}`}
+          className={`w-full max-w-sm rounded-lg shadow-2xl border-2 ${styles.bgColor} ${styles.borderColor} z-50`}
         >
           <div className="p-4">
             <div className="flex items-start">
