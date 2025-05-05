@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
-import { Progress } from '@/components/ui/progress';
+import { CustomProgress } from '@/components/ui/custom-progress';
 import { CheckCircle, Plus } from 'lucide-react';
 import { type Reminder, type Goal } from '@shared/schema';
 import { calculateProgress } from '@/lib/utils';
@@ -117,10 +117,11 @@ export function RemindersAndGoals() {
                         {goal.current}/{goal.target}
                       </span>
                     </div>
-                    <Progress 
-                      value={calculateProgress(goal.current, goal.target)} 
+                    <CustomProgress 
+                      value={goal.current || 0} 
+                      maxValue={goal.target || 1}
                       className="h-2" 
-                      indicatorClassName={
+                      barClassName={
                         goal.category === 'exercise' ? 'bg-primary' :
                         goal.category === 'sleep' ? 'bg-error' :
                         'bg-secondary'
@@ -137,10 +138,11 @@ export function RemindersAndGoals() {
                       7000/10000
                     </span>
                   </div>
-                  <Progress 
-                    value={70} 
+                  <CustomProgress 
+                    value={7000} 
+                    maxValue={10000}
                     className="h-2" 
-                    indicatorClassName="bg-primary"
+                    barClassName="bg-primary"
                   />
                 </div>
                 
@@ -151,10 +153,11 @@ export function RemindersAndGoals() {
                       3/5
                     </span>
                   </div>
-                  <Progress 
-                    value={60} 
+                  <CustomProgress 
+                    value={3} 
+                    maxValue={5}
                     className="h-2" 
-                    indicatorClassName="bg-secondary"
+                    barClassName="bg-secondary"
                   />
                 </div>
                 
@@ -165,10 +168,11 @@ export function RemindersAndGoals() {
                       6/8
                     </span>
                   </div>
-                  <Progress 
-                    value={75} 
+                  <CustomProgress 
+                    value={6} 
+                    maxValue={8}
                     className="h-2" 
-                    indicatorClassName="bg-error"
+                    barClassName="bg-error"
                   />
                 </div>
               </>
