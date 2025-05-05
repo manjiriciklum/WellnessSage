@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/components/theme-provider';
 import { 
   User, 
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const [profileImage, setProfileImage] = useState<string | null>(user?.profileImage || null);
 

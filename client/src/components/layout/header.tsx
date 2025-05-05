@@ -3,10 +3,10 @@ import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { User, Settings, Menu } from 'lucide-react';
 import { NotificationPanel } from '@/components/notifications/notification-panel';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/hooks/use-auth';
 
 export function Header() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [, setLocation] = useLocation();
 
