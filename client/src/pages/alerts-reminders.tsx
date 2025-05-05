@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, Bell, Check, X } from 'lucide-react';
+import { Plus, Bell, Check, X, AlertTriangle, Info } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { type Reminder } from '@shared/schema';
@@ -281,7 +281,7 @@ export default function AlertsRemindersPage() {
                       className="flex items-center justify-center gap-2 h-16" 
                       onClick={() => testNotification('info')}
                     >
-                      <Bell className="h-5 w-5 text-gray-500" />
+                      <Info className="h-5 w-5 text-gray-500" />
                       <div className="text-left">
                         <div className="font-medium">Info</div>
                         <div className="text-xs text-neutral-500">Device connected</div>

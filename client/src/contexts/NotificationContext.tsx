@@ -105,7 +105,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   }, [userId]);
   
   const addNotification = (notification: Omit<NotificationItem, 'id' | 'createdAt'>) => {
-    const id = Date.now().toString();
+    // Create a unique ID by combining timestamp with a random string
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const createdAt = new Date();
     
     setNotifications(prev => [
