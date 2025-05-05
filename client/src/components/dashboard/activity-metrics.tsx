@@ -46,8 +46,7 @@ export function ActivityMetrics() {
                 {healthData?.calories?.toLocaleString() || '0'} / 2,500
               </span>
             </div>
-            <CustomProgress value={healthData?.calories || 0} maxValue={2500} className="h-2" 
-              barClassName="bg-accent" />
+            <SimpleProgress value={healthData?.calories || 0} maxValue={2500} colorClass="bg-accent" />
           </div>
         </div>
       </CardContent>
