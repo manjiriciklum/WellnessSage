@@ -105,6 +105,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(latestHealthData);
   });
   
+  app.delete("/api/health-data/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteHealthData(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Health data not found" });
+      }
+      
+      return res.status(200).json({ message: "Health data deleted successfully" });
+    } catch (error: any) {
+      console.error('Error deleting health data:', error);
+      return res.status(500).json({ 
+        message: "Error deleting health data", 
+        error: error?.message || String(error)
+      });
+    }
+  });
+  
   app.get("/api/users/:userId/health-data/weekly", async (req, res) => {
     const userId = parseInt(req.params.userId);
     // Log the audit event

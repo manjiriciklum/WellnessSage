@@ -21,6 +21,7 @@ export interface IStorage {
   getHealthDataByUserId(userId: number): Promise<HealthData[]>;
   getLatestHealthData(userId: number): Promise<HealthData | undefined>;
   createHealthData(data: InsertHealthData): Promise<HealthData>;
+  deleteHealthData(id: number): Promise<boolean>;
 
   // Wearable Device methods
   getWearableDevicesByUserId(userId: number): Promise<WearableDevice[]>;
@@ -247,6 +248,21 @@ export class MemStorage implements IStorage {
     logAuditEvent(insertData.userId, 'create', 'healthData', id, 'Created new health data record');
     
     return healthData;
+  }
+  
+  async deleteHealthData(id: number): Promise<boolean> {
+    const healthData = this.healthData.get(id);
+    if (!healthData) return false;
+    
+    // Delete the health data
+    const success = this.healthData.delete(id);
+    
+    // Log audit event for HIPAA compliance
+    if (success) {
+      logAuditEvent(healthData.userId, 'delete', 'healthData', id, 'Deleted health data record');
+    }
+    
+    return success;
   }
 
   // Wearable Device methods
