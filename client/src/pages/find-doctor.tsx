@@ -1,11 +1,81 @@
 import React, { useState } from 'react';
-import { FindDoctor } from '@/components/dashboard/find-doctor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
-import { Search, MapPin, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, MapPin, Calendar as CalendarIcon, Eye } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { type Doctor } from '@shared/schema';
+import { StarRating } from '@/components/ui/star-rating';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+interface DoctorListingProps {
+  specialty?: string;
+}
+
+function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
+  const { data: doctors, isLoading } = useQuery<Doctor[]>({
+    queryKey: ['/api/doctors'],
+  });
+  
+  // Filter doctors by specialty if needed
+  const filteredDoctors = specialty === 'all' ? 
+    doctors : 
+    doctors?.filter(doctor => doctor.specialty.toLowerCase().includes(specialty.toLowerCase()));
+
+  return (
+    <Card className="shadow-sm">
+      <CardContent className="p-5">
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border-b border-neutral-100 dark:border-neutral-600 py-4 animate-pulse">
+                <div className="h-16 bg-neutral-100 dark:bg-neutral-700 rounded-md"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {filteredDoctors?.map((doctor) => (
+              <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                  <Avatar className="w-16 h-16">
+                    <AvatarImage src={doctor.profileImage || ''} alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} />
+                    <AvatarFallback>{doctor.firstName[0]}{doctor.lastName[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h3 className="text-md font-medium text-neutral-800 dark:text-white">
+                      Dr. {doctor.firstName} {doctor.lastName}
+                    </h3>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-300">
+                      {doctor.specialty} • {doctor.practice}
+                    </p>
+                    <div className="flex items-center mt-1">
+                      <StarRating 
+                        value={doctor.rating || 0} 
+                        showValue={true}
+                        reviewCount={doctor.reviewCount || undefined}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button>
+                      Book Appointment
+                    </Button>
+                    <Button variant="outline" size="icon">
+                      <Eye size={18} />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function FindDoctorPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -67,31 +137,19 @@ export default function FindDoctorPage() {
         </div>
         
         <TabsContent value="all">
-          <FindDoctor />
+          <DoctorListing specialty="all" />
         </TabsContent>
         
         <TabsContent value="primary">
-          <div className="text-center p-8">
-            <p className="text-neutral-600 dark:text-neutral-200">
-              Primary Care doctors will appear here.
-            </p>
-          </div>
+          <DoctorListing specialty="Primary Care" />
         </TabsContent>
         
         <TabsContent value="cardiology">
-          <div className="text-center p-8">
-            <p className="text-neutral-600 dark:text-neutral-200">
-              Cardiologists will appear here.
-            </p>
-          </div>
+          <DoctorListing specialty="Cardiology" />
         </TabsContent>
         
         <TabsContent value="mental">
-          <div className="text-center p-8">
-            <p className="text-neutral-600 dark:text-neutral-200">
-              Mental Health specialists will appear here.
-            </p>
-          </div>
+          <DoctorListing specialty="Mental Health" />
         </TabsContent>
       </Tabs>
     </div>

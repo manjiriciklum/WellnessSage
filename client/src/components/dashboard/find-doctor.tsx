@@ -7,6 +7,7 @@ import { StarRating } from '@/components/ui/star-rating';
 import { type Doctor } from '@shared/schema';
 import { Search, MapPin, Eye } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Link } from 'wouter';
 
 export function FindDoctor() {
   const [specialty, setSpecialty] = useState('');
@@ -27,7 +28,9 @@ export function FindDoctor() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white">Find a Doctor</h2>
-        <Button variant="link" className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0">View All</Button>
+        <Link href="/find-doctor">
+          <Button variant="link" className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0">View All</Button>
+        </Link>
       </div>
       
       <Card className="shadow-sm">
