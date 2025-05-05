@@ -7,9 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { FaFacebook, FaGoogle } from "react-icons/fa";
+import { useToast } from "@/hooks/use-toast";
 
 const AuthPage = () => {
   const { user, loginMutation, registerMutation } = useAuth();
+  const { toast } = useToast();
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [registerForm, setRegisterForm] = useState({
     username: "",
@@ -18,6 +22,14 @@ const AuthPage = () => {
     lastName: "",
     email: "",
   });
+  
+  const handleSocialLogin = (provider: string) => {
+    toast({
+      title: `${provider} Authentication`,
+      description: `${provider} authentication is currently unavailable. Please use username/password login.`,
+      variant: "destructive"
+    });
+  };
 
   // If user is already logged in, redirect to dashboard
   if (user) {
@@ -84,7 +96,7 @@ const AuthPage = () => {
                       />
                     </div>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="flex flex-col space-y-4">
                     <Button className="w-full" type="submit" disabled={loginMutation.isPending}>
                       {loginMutation.isPending ? (
                         <>
@@ -95,6 +107,38 @@ const AuthPage = () => {
                         "Sign In"
                       )}
                     </Button>
+                    
+                    <div className="relative my-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <Separator className="w-full" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                          Or continue with
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        type="button" 
+                        className="flex items-center justify-center"
+                        onClick={() => window.location.href = '/api/auth/google'}
+                      >
+                        <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
+                        Google
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        type="button" 
+                        className="flex items-center justify-center"
+                        onClick={() => window.location.href = '/api/auth/facebook'}
+                      >
+                        <FaFacebook className="mr-2 h-4 w-4 text-blue-600" />
+                        Facebook
+                      </Button>
+                    </div>
                   </CardFooter>
                 </form>
               </Card>
@@ -164,7 +208,7 @@ const AuthPage = () => {
                       />
                     </div>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="flex flex-col space-y-4">
                     <Button className="w-full" type="submit" disabled={registerMutation.isPending}>
                       {registerMutation.isPending ? (
                         <>
@@ -175,6 +219,38 @@ const AuthPage = () => {
                         "Create Account"
                       )}
                     </Button>
+                    
+                    <div className="relative my-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <Separator className="w-full" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                          Or sign up with
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        type="button" 
+                        className="flex items-center justify-center"
+                        onClick={() => window.location.href = '/api/auth/google'}
+                      >
+                        <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
+                        Google
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        type="button" 
+                        className="flex items-center justify-center"
+                        onClick={() => window.location.href = '/api/auth/facebook'}
+                      >
+                        <FaFacebook className="mr-2 h-4 w-4 text-blue-600" />
+                        Facebook
+                      </Button>
+                    </div>
                   </CardFooter>
                 </form>
               </Card>
