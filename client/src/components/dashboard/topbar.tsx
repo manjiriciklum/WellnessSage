@@ -17,8 +17,9 @@ export function TopBar({ title }: TopBarProps) {
         <h1 className="text-xl font-headings font-semibold text-neutral-800 dark:text-white">{title}</h1>
         <p className="text-sm text-neutral-500 dark:text-neutral-300">{today}</p>
       </div>
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
         <NotificationPanel />
+        <UserProfile />
         <ActionMenu />
       </div>
     </header>

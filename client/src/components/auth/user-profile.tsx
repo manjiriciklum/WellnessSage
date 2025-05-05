@@ -27,7 +27,7 @@ export function UserProfile() {
   };
 
   const handleSettings = () => {
-    navigate("/settings");
+    setLocation("/settings");
   };
 
   return (
