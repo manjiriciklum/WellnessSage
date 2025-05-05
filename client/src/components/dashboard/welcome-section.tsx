@@ -3,12 +3,12 @@ import { Plus, Watch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { getGreeting } from '@/lib/utils';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/hooks/use-auth';
 import { Link } from 'wouter';
 import { AddHealthDataModal } from './add-health-data-modal';
 
 export function WelcomeSection() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const greeting = getGreeting(user?.firstName || 'User');
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
 
