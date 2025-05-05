@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CustomProgress } from '@/components/ui/custom-progress';
+import { SimpleProgress } from '@/components/ui/simple-progress';
 import { useHealthData } from '@/hooks/use-health-data';
 
 export function ActivityMetrics() {
@@ -28,8 +28,7 @@ export function ActivityMetrics() {
                 {healthData?.steps?.toLocaleString() || '0'} / 10,000
               </span>
             </div>
-            <CustomProgress value={healthData?.steps || 0} maxValue={10000} className="h-2" 
-              barClassName="bg-primary" />
+            <SimpleProgress value={healthData?.steps || 0} maxValue={10000} colorClass="bg-primary" />
           </div>
           <div>
             <div className="flex justify-between mb-1">
@@ -38,8 +37,7 @@ export function ActivityMetrics() {
                 {healthData?.activeMinutes || '0'} / 60
               </span>
             </div>
-            <CustomProgress value={healthData?.activeMinutes || 0} maxValue={60} className="h-2" 
-              barClassName="bg-secondary" />
+            <SimpleProgress value={healthData?.activeMinutes || 0} maxValue={60} colorClass="bg-secondary" />
           </div>
           <div>
             <div className="flex justify-between mb-1">
