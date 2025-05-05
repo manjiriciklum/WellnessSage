@@ -11,11 +11,20 @@ import {
 } from "@shared/schema";
 import { encryptData, decryptData, logAuditEvent, maskSensitiveData } from "./security";
 
+import session from 'express-session';
+import createMemoryStore from 'memorystore';
+
 export interface IStorage {
+  // Session store for authentication
+  sessionStore: session.Store;
+
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByOAuthId(provider: string, oauthId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserLastLogin(id: number): Promise<User | undefined>;
 
   // Health Data methods
   getHealthDataByUserId(userId: number): Promise<HealthData[]>;
@@ -100,6 +109,9 @@ export class MemStorage implements IStorage {
   private aiInsightId: number;
   private healthConsultationId: number;
 
+  // Initialize MemoryStore
+  public sessionStore: session.Store;
+
   constructor() {
     this.users = new Map();
     this.healthData = new Map();
@@ -120,6 +132,12 @@ export class MemStorage implements IStorage {
     this.goalId = 1;
     this.aiInsightId = 1;
     this.healthConsultationId = 1;
+    
+    // Initialize the session store
+    const MemoryStore = createMemoryStore(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
 
     // Initialize with demo data
     this.initializeDemoData();

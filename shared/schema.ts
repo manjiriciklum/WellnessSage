@@ -11,6 +11,10 @@ export const users = pgTable("users", {
   lastName: text("last_name").notNull(),
   email: text("email").notNull().unique(),
   profileImage: text("profile_image"),
+  role: text("role").default("user"),
+  oauthProvider: text("oauth_provider"),
+  oauthId: text("oauth_id"),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow()
 });
 
@@ -20,7 +24,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   firstName: true,
   lastName: true,
   email: true,
-  profileImage: true
+  profileImage: true,
+  role: true,
+  oauthProvider: true,
+  oauthId: true,
+  lastLogin: true
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
