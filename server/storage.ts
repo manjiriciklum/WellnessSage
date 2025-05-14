@@ -71,7 +71,7 @@ export interface IStorage {
   updateGoalProgress(id: number, current: number): Promise<Goal | undefined>;
 
   // AI Insight methods
-  getAiInsightsByUserId(userId: number): Promise<AiInsight[]>;
+  getAiInsightsByUserId(userId: string | number): Promise<AiInsight[]>;
   getAiInsight(id: number): Promise<AiInsight | undefined>;
   createAiInsight(insight: InsertAiInsight): Promise<AiInsight>;
   markAiInsightAsRead(id: number): Promise<AiInsight | undefined>;
@@ -84,9 +84,18 @@ export interface IStorage {
 
   // Demo data generation
   generateDemoData(userId: number): Promise<void>;
+
+  // Test data cleanup
+  clearTestData(): Promise<void>;
 }
 
-// Security functions are already imported above
+interface ChatMessage {
+  id: number;
+  userId: number;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
 
 /**
  * HIPAA-compliant in-memory storage implementation
@@ -102,6 +111,7 @@ export class MemStorage implements IStorage {
   private goals: Map<number, Goal>;
   private aiInsights: Map<number, AiInsight>;
   private healthConsultations: Map<number, HealthConsultation>;
+  private chatMessages: Map<number, ChatMessage>;
   
   private userId: number;
   private healthDataId: number;
@@ -112,6 +122,7 @@ export class MemStorage implements IStorage {
   private goalId: number;
   private aiInsightId: number;
   private healthConsultationId: number;
+  private chatMessageId: number;
 
   // Initialize MemoryStore
   public sessionStore: session.Store;
@@ -126,6 +137,7 @@ export class MemStorage implements IStorage {
     this.goals = new Map();
     this.aiInsights = new Map();
     this.healthConsultations = new Map();
+    this.chatMessages = new Map();
     
     this.userId = 1;
     this.healthDataId = 1;
@@ -136,6 +148,7 @@ export class MemStorage implements IStorage {
     this.goalId = 1;
     this.aiInsightId = 1;
     this.healthConsultationId = 1;
+    this.chatMessageId = 1;
     
     // Initialize the session store
     const MemoryStore = createMemoryStore(session);
@@ -145,6 +158,128 @@ export class MemStorage implements IStorage {
 
     // Initialize with demo data
     this.initializeDemoData();
+  }
+
+  private initializeDemoData() {
+    // Initialize with demo data
+    this.createDoctor({
+      firstName: "John",
+      lastName: "Doe",
+      specialty: "General Medicine",
+      practice: "City Hospital",
+      location: "New York",
+      rating: 4.5,
+      reviewCount: 100,
+      profileImage: null
+    });
+
+    // Create demo wearable devices
+    const demoDevices: WearableDevice[] = [
+      {
+        id: 1,
+        userId: 1,
+        deviceName: 'Apple Watch Series 8',
+        deviceType: 'watch',
+        deviceModel: 'Series 8',
+        manufacturer: 'Apple',
+        serialNumber: 'AW123456',
+        firmwareVersion: '9.0',
+        batteryLevel: 85,
+        isConnected: true,
+        lastSynced: new Date(),
+        capabilities: {
+          heartRate: true,
+          stepCount: true,
+          caloriesBurned: true,
+          sleep: true,
+          bloodOxygen: true,
+          ecg: true,
+          temperature: true
+        },
+        connectionSettings: {
+          connectionType: 'bluetooth',
+          autoSync: true,
+          syncInterval: 15,
+          dataPermissions: {
+            shareHealthData: true,
+            shareLocation: false,
+            shareSleepData: true
+          }
+        }
+      },
+      {
+        id: 2,
+        userId: 1,
+        deviceName: 'Fitbit Charge 5',
+        deviceType: 'tracker',
+        deviceModel: 'Charge 5',
+        manufacturer: 'Fitbit',
+        serialNumber: 'FB789012',
+        firmwareVersion: '2.0',
+        batteryLevel: 60,
+        isConnected: false,
+        lastSynced: null,
+        capabilities: {
+          heartRate: true,
+          stepCount: true,
+          caloriesBurned: true,
+          sleep: true,
+          bloodOxygen: true,
+          stress: true
+        },
+        connectionSettings: {
+          connectionType: 'bluetooth',
+          autoSync: true,
+          syncInterval: 30,
+          dataPermissions: {
+            shareHealthData: true,
+            shareLocation: false,
+            shareSleepData: true
+          }
+        }
+      }
+    ];
+    
+    demoDevices.forEach(device => {
+      this.wearableDevices.set(device.id, device);
+      this.wearableDeviceId++;
+    });
+
+    // Create demo health data
+    const demoHealthData: HealthData[] = [
+      {
+        id: 1,
+        userId: 1,
+        date: new Date(),
+        steps: 8432,
+        activeMinutes: 45,
+        calories: 1850,
+        sleepHours: 7.5,
+        sleepQuality: 85,
+        heartRate: 72,
+        healthScore: 88,
+        stressLevel: 35,
+        healthMetrics: {
+          activityLevel: 3,
+          stepsGoal: 10000,
+          caloriesGoal: 2500,
+          sleepGoal: 8,
+          hydrationGoal: 2000,
+          lastUpdated: new Date().toISOString(),
+          heartRateMin: 65,
+          heartRateMax: 95,
+          deepSleep: 1.9,
+          remSleep: 1.5,
+          bloodOxygen: 98,
+          temperature: 36.6
+        }
+      }
+    ];
+
+    demoHealthData.forEach(data => {
+      this.healthData.set(data.id, data);
+      this.healthDataId++;
+    });
   }
 
   // User methods
@@ -248,55 +383,21 @@ export class MemStorage implements IStorage {
 
   async createHealthData(insertData: InsertHealthData): Promise<HealthData> {
     const id = this.healthDataId++;
-    
-    // Normalize the data before encryption
-    const normalizedData = {
+    const healthData: HealthData = {
+      id,
       userId: insertData.userId,
-      date: insertData.date instanceof Date ? insertData.date : new Date(),
-      steps: insertData.steps ?? null,
-      activeMinutes: insertData.activeMinutes ?? null,
-      calories: insertData.calories ?? null,
-      sleepHours: insertData.sleepHours ?? null,
-      sleepQuality: insertData.sleepQuality ?? null,
-      heartRate: insertData.heartRate ?? null,
-      healthScore: insertData.healthScore ?? null,
-      stressLevel: insertData.stressLevel ?? null,
+      date: insertData.date ?? new Date(),
+      steps: insertData.steps ?? 0,
+      activeMinutes: insertData.activeMinutes ?? 0,
+      calories: insertData.calories ?? 0,
+      sleepHours: insertData.sleepHours ?? 0,
+      sleepQuality: insertData.sleepQuality ?? 0,
+      heartRate: insertData.heartRate ?? 0,
+      healthScore: insertData.healthScore ?? 0,
+      stressLevel: insertData.stressLevel ?? 0,
       healthMetrics: insertData.healthMetrics ?? {}
     };
-    
-    // Encrypt sensitive health metrics for HIPAA compliance
-    let healthMetricsString = typeof normalizedData.healthMetrics === 'string' 
-      ? normalizedData.healthMetrics 
-      : JSON.stringify(normalizedData.healthMetrics || {});
-      
-    const { encryptedData, iv, authTag } = encryptData(healthMetricsString);
-    
-    // Store encrypted data with metadata
-    const healthData: HealthData = { 
-      id,
-      userId: normalizedData.userId,
-      date: normalizedData.date,
-      steps: normalizedData.steps,
-      activeMinutes: normalizedData.activeMinutes,
-      calories: normalizedData.calories,
-      sleepHours: normalizedData.sleepHours,
-      sleepQuality: normalizedData.sleepQuality,
-      heartRate: normalizedData.heartRate,
-      healthScore: normalizedData.healthScore,
-      stressLevel: normalizedData.stressLevel,
-      healthMetrics: {
-        data: encryptedData,
-        iv,
-        authTag,
-        isEncrypted: true
-      }
-    };
-    
     this.healthData.set(id, healthData);
-    
-    // Log audit event for HIPAA compliance
-    logAuditEvent(insertData.userId, 'create', 'healthData', id, 'Created new health data record');
-    
     return healthData;
   }
   
@@ -328,7 +429,21 @@ export class MemStorage implements IStorage {
 
   async createWearableDevice(insertDevice: InsertWearableDevice): Promise<WearableDevice> {
     const id = this.wearableDeviceId++;
-    const device: WearableDevice = { ...insertDevice, id };
+    const device: WearableDevice = {
+      id,
+      userId: insertDevice.userId,
+      deviceName: insertDevice.deviceName,
+      deviceType: insertDevice.deviceType,
+      deviceModel: insertDevice.deviceModel ?? null,
+      manufacturer: insertDevice.manufacturer ?? null,
+      serialNumber: insertDevice.serialNumber ?? null,
+      firmwareVersion: insertDevice.firmwareVersion ?? null,
+      batteryLevel: insertDevice.batteryLevel ?? null,
+      isConnected: insertDevice.isConnected ?? false,
+      lastSynced: insertDevice.lastSynced ?? null,
+      capabilities: insertDevice.capabilities ?? {},
+      connectionSettings: insertDevice.connectionSettings ?? {}
+    };
     this.wearableDevices.set(id, device);
     return device;
   }
@@ -372,11 +487,8 @@ export class MemStorage implements IStorage {
   
   async getDevicesByCapability(capability: string): Promise<WearableDevice[]> {
     return Array.from(this.wearableDevices.values()).filter(device => {
-      if (!device.capabilities) return false;
-      
-      // Check if the device has this capability
       const capabilities = device.capabilities as Record<string, boolean>;
-      return capabilities[capability] === true;
+      return capabilities && capabilities[capability] === true;
     });
   }
 
@@ -393,7 +505,16 @@ export class MemStorage implements IStorage {
 
   async createWellnessPlan(insertPlan: InsertWellnessPlan): Promise<WellnessPlan> {
     const id = this.wellnessPlanId++;
-    const plan: WellnessPlan = { ...insertPlan, id };
+    const plan: WellnessPlan = {
+      id,
+      userId: insertPlan.userId,
+      planName: insertPlan.planName,
+      planType: insertPlan.planType,
+      description: insertPlan.description ?? null,
+      startDate: insertPlan.startDate,
+      endDate: insertPlan.endDate ?? null,
+      goals: insertPlan.goals
+    };
     this.wellnessPlans.set(id, plan);
     return plan;
   }
@@ -407,11 +528,21 @@ export class MemStorage implements IStorage {
     return this.doctors.get(id);
   }
 
-  async createDoctor(insertDoctor: InsertDoctor): Promise<Doctor> {
+  async createDoctor(doctor: InsertDoctor): Promise<Doctor> {
     const id = this.doctorId++;
-    const doctor: Doctor = { ...insertDoctor, id };
-    this.doctors.set(id, doctor);
-    return doctor;
+    const newDoctor: Doctor = {
+      id,
+      firstName: doctor.firstName,
+      lastName: doctor.lastName,
+      specialty: doctor.specialty,
+      practice: doctor.practice,
+      location: doctor.location,
+      rating: doctor.rating ?? 0,
+      reviewCount: doctor.reviewCount ?? 0,
+      profileImage: doctor.profileImage ?? null
+    };
+    this.doctors.set(id, newDoctor);
+    return newDoctor;
   }
 
   async getDoctorsBySpecialty(specialty: string): Promise<Doctor[]> {
@@ -447,7 +578,17 @@ export class MemStorage implements IStorage {
 
   async createReminder(insertReminder: InsertReminder): Promise<Reminder> {
     const id = this.reminderId++;
-    const reminder: Reminder = { ...insertReminder, id };
+    const reminder: Reminder = {
+      id,
+      userId: insertReminder.userId,
+      title: insertReminder.title,
+      description: insertReminder.description ?? null,
+      time: insertReminder.time ?? null,
+      frequency: insertReminder.frequency ?? null,
+      isCompleted: insertReminder.isCompleted ?? false,
+      category: insertReminder.category,
+      color: insertReminder.color ?? null
+    };
     this.reminders.set(id, reminder);
     return reminder;
   }
@@ -508,7 +649,7 @@ export class MemStorage implements IStorage {
   }
 
   // AI Insight methods
-  async getAiInsightsByUserId(userId: number): Promise<AiInsight[]> {
+  async getAiInsightsByUserId(userId: string | number): Promise<AiInsight[]> {
     return Array.from(this.aiInsights.values()).filter(
       (insight) => insight.userId === userId
     );
@@ -520,10 +661,15 @@ export class MemStorage implements IStorage {
 
   async createAiInsight(insertInsight: InsertAiInsight): Promise<AiInsight> {
     const id = this.aiInsightId++;
-    const insight: AiInsight = { 
-      ...insertInsight, 
+    const insight: AiInsight = {
       id,
-      createdAt: new Date()
+      userId: insertInsight.userId,
+      title: insertInsight.title,
+      description: insertInsight.description,
+      category: insertInsight.category,
+      action: insertInsight.action ?? null,
+      createdAt: new Date(),
+      isRead: insertInsight.isRead ?? false
     };
     this.aiInsights.set(id, insight);
     return insight;
@@ -634,46 +780,16 @@ export class MemStorage implements IStorage {
 
   async createHealthConsultation(insertConsultation: InsertHealthConsultation): Promise<HealthConsultation> {
     const id = this.healthConsultationId++;
-    
-    // Encrypt sensitive medical symptoms and analysis
-    const { encryptedData: encryptedSymptoms, iv: symptomsIv, authTag: symptomsAuthTag } = encryptData(insertConsultation.symptoms);
-    const { encryptedData: encryptedAnalysis, iv: analysisIv, authTag: analysisAuthTag } = encryptData(insertConsultation.analysis);
-    const { encryptedData: encryptedRecommendations, iv: recIv, authTag: recAuthTag } = encryptData(insertConsultation.recommendations);
-    
-    // Create encrypted consultation
-    const encryptedConsultation = {
-      ...insertConsultation,
-      symptoms: {
-        data: encryptedSymptoms,
-        iv: symptomsIv,
-        authTag: symptomsAuthTag,
-        isEncrypted: true
-      },
-      analysis: {
-        data: encryptedAnalysis,
-        iv: analysisIv,
-        authTag: analysisAuthTag,
-        isEncrypted: true
-      },
-      recommendations: {
-        data: encryptedRecommendations,
-        iv: recIv,
-        authTag: recAuthTag,
-        isEncrypted: true
-      }
-    };
-    
-    const consultation: HealthConsultation = { 
-      ...encryptedConsultation, 
+    const consultation: HealthConsultation = {
       id,
-      createdAt: new Date() 
+      userId: insertConsultation.userId,
+      symptoms: insertConsultation.symptoms,
+      analysis: insertConsultation.analysis,
+      recommendations: insertConsultation.recommendations,
+      severity: insertConsultation.severity,
+      createdAt: new Date()
     };
-    
     this.healthConsultations.set(id, consultation);
-    
-    // Log audit event for HIPAA compliance
-    logAuditEvent(insertConsultation.userId, 'create', 'healthConsultation', id, 'Created new health consultation');
-    
     return consultation;
   }
 
@@ -817,42 +933,65 @@ export class MemStorage implements IStorage {
       {
         id: 1,
         userId: 1,
-        deviceName: 'Fitbit Sense',
+        deviceName: 'Apple Watch Series 8',
         deviceType: 'watch',
+        deviceModel: 'Series 8',
+        manufacturer: 'Apple',
+        serialNumber: 'AW123456',
+        firmwareVersion: '9.0',
+        batteryLevel: 85,
         isConnected: true,
-        lastSynced: new Date()
+        lastSynced: new Date(),
+        capabilities: {
+          heartRate: true,
+          stepCount: true,
+          caloriesBurned: true,
+          sleep: true,
+          bloodOxygen: true,
+          ecg: true,
+          temperature: true
+        },
+        connectionSettings: {
+          connectionType: 'bluetooth',
+          autoSync: true,
+          syncInterval: 15,
+          dataPermissions: {
+            shareHealthData: true,
+            shareLocation: false,
+            shareSleepData: true
+          }
+        }
       },
       {
         id: 2,
         userId: 1,
-        deviceName: 'Apple Health',
-        deviceType: 'smartphone',
-        isConnected: true,
-        lastSynced: new Date()
-      },
-      {
-        id: 3,
-        userId: 1,
-        deviceName: 'Samsung Galaxy Watch 6',
-        deviceType: 'watch',
+        deviceName: 'Fitbit Charge 5',
+        deviceType: 'tracker',
+        deviceModel: 'Charge 5',
+        manufacturer: 'Fitbit',
+        serialNumber: 'FB789012',
+        firmwareVersion: '2.0',
+        batteryLevel: 60,
         isConnected: false,
-        lastSynced: null
-      },
-      {
-        id: 4,
-        userId: 1,
-        deviceName: 'Samsung Galaxy Watch Ultra',
-        deviceType: 'watch',
-        isConnected: false,
-        lastSynced: null
-      },
-      {
-        id: 5,
-        userId: 1,
-        deviceName: 'Smart Scale',
-        deviceType: 'scale',
-        isConnected: false,
-        lastSynced: null
+        lastSynced: null,
+        capabilities: {
+          heartRate: true,
+          stepCount: true,
+          caloriesBurned: true,
+          sleep: true,
+          bloodOxygen: true,
+          stress: true
+        },
+        connectionSettings: {
+          connectionType: 'bluetooth',
+          autoSync: true,
+          syncInterval: 30,
+          dataPermissions: {
+            shareHealthData: true,
+            shareLocation: false,
+            shareSleepData: true
+          }
+        }
       }
     ];
     
@@ -1059,6 +1198,43 @@ export class MemStorage implements IStorage {
     // This method would generate realistic health data, insights, etc.
     // for demo purposes. For now, we're just using the pre-initialized data.
     return Promise.resolve();
+  }
+
+  async clearTestData(): Promise<void> {
+    // Remove all users whose email contains 'test' or username starts with 'test'
+    for (const [id, user] of this.users.entries()) {
+      if (
+        (user.email && user.email.includes('test')) ||
+        (user.username && user.username.startsWith('test'))
+      ) {
+        this.users.delete(id);
+      }
+    }
+  }
+
+  async createChatMessage(userId: number, role: 'user' | 'assistant', content: string): Promise<void> {
+    const id = this.chatMessageId++;
+    const message: ChatMessage = {
+      id,
+      userId,
+      role,
+      content,
+      timestamp: new Date()
+    };
+    this.chatMessages.set(id, message);
+  }
+
+  async getChatHistory(userId: number, limit = 50): Promise<{ role: 'user' | 'assistant', content: string, timestamp: Date }[]> {
+    return Array.from(this.chatMessages.values())
+      .filter(msg => msg.userId === userId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, limit)
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }))
+      .reverse(); // Return in chronological order
   }
 }
 
@@ -1322,8 +1498,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDoctor(insertDoctor: InsertDoctor): Promise<Doctor> {
-    const [doctor] = await db.insert(doctors).values(insertDoctor).returning();
-    return doctor;
+    const id = this.doctorId++;
+    const newDoctor: Doctor = {
+      id,
+      firstName: insertDoctor.firstName,
+      lastName: insertDoctor.lastName,
+      specialty: insertDoctor.specialty,
+      practice: insertDoctor.practice,
+      location: insertDoctor.location,
+      rating: insertDoctor.rating ?? 0,
+      reviewCount: insertDoctor.reviewCount ?? 0,
+      profileImage: insertDoctor.profileImage ?? null
+    };
+    this.doctors.set(id, newDoctor);
+    return newDoctor;
   }
 
   async getDoctorsBySpecialty(specialty: string): Promise<Doctor[]> {
@@ -1392,7 +1580,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // AI Insight methods
-  async getAiInsightsByUserId(userId: number): Promise<AiInsight[]> {
+  async getAiInsightsByUserId(userId: string | number): Promise<AiInsight[]> {
     return db.select().from(aiInsights).where(eq(aiInsights.userId, userId));
   }
 
@@ -1466,6 +1654,11 @@ export class DatabaseStorage implements IStorage {
   async generateDemoData(userId: number): Promise<void> {
     // Demo data implementation would be similar to MemStorage but using database inserts
     console.log(`Generated demo data for user ID ${userId}`);
+  }
+
+  async clearTestData(): Promise<void> {
+    // Implementation for clearing test data in the database
+    console.log('Clearing test data in the database');
   }
 }
 

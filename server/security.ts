@@ -228,7 +228,7 @@ export function applyDataRetention(dataType: string, retentionMonths: number): v
  */
 export function hashPassword(password: string): { hash: string; salt: string } {
   const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
   return { hash, salt };
 }
 
@@ -239,9 +239,26 @@ export function hashPassword(password: string): { hash: string; salt: string } {
  * @param salt - Salt used for hashing
  * @returns True if password matches
  */
-export function verifyPassword(password: string, hash: string, salt: string): boolean {
-  const verifyHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-  return hash === verifyHash;
+export function verifyPassword(password: string, storedHash: string, storedSalt: string): boolean {
+  const hash = crypto.pbkdf2Sync(password, storedSalt, 1000, 64, 'sha512').toString('hex');
+  return hash === storedHash;
+}
+
+export function comparePasswords(password: string, storedPassword: string): boolean {
+  try {
+    // Try PBKDF2 format first (hash.salt)
+    const [storedHash, storedSalt] = storedPassword.split('.');
+    if (storedHash && storedSalt) {
+      return verifyPassword(password, storedHash, storedSalt);
+    }
+
+    // Try scrypt format as fallback
+    const hash = crypto.scryptSync(password, storedSalt, 64).toString('hex');
+    return hash === storedHash;
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 }
 
 // Extended Request interface to include session properties

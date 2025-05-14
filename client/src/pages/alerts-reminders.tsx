@@ -23,7 +23,7 @@ export default function AlertsRemindersPage() {
   // Add a mutation to create a new reminder
   const createReminderMutation = useMutation({
     mutationFn: async (reminder: any) => {
-      return apiRequest('/api/reminders', 'POST', reminder);
+      return apiRequest('POST', '/api/reminders', reminder);
     },
     onSuccess: () => {
       // Clear the form

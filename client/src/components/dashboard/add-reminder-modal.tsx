@@ -52,7 +52,7 @@ const reminderCategories = [
 
 // Extend the insert schema with additional validation
 const formSchema = z.object({
-  userId: z.number(),
+  userId: z.string(),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional().nullable(),
   time: z.string().min(1, 'Time is required'),
@@ -67,10 +67,14 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
   const { user } = useAuth();
   const userId = user?.id;
   
+  console.log("Current user:", user);
+  console.log("User ID from auth:", userId);
+  console.log("User ID type:", typeof userId);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      userId,
+      userId: userId || '',
       title: '',
       description: '',
       time: '',
@@ -80,20 +84,38 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
     },
   });
 
+  // Add form state logging
+  React.useEffect(() => {
+    const subscription = form.watch((value) => {
+      console.log("Form values changed:", value);
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: FormValues) => {
+      console.log("Mutation function called with data:", data);
+      console.log("Current user ID:", userId);
+      
+      // Validate userId
+      if (!userId) {
+        throw new Error('No user ID found. Please log in again.');
+      }
+
       // Ensure color is set based on category
       const category = reminderCategories.find(c => c.value === data.category);
       const formattedData = {
         ...data,
+        userId: userId,
         color: category?.color || 'blue-500',
       };
       
-      console.log('Submitting reminder:', formattedData);
+      console.log('Submitting reminder with formatted data:', formattedData);
       const response = await apiRequest('POST', '/api/reminders', formattedData);
       const result = await response.json();
       
       if (!response.ok) {
+        console.error('API error:', result);
         throw new Error(result.error || 'Failed to save reminder');
       }
       
@@ -115,6 +137,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
       form.reset();
     },
     onError: (error) => {
+      console.error('Mutation error:', error);
       toast({
         title: 'Failed to add reminder',
         description: error.message || 'An error occurred while adding the reminder.',
@@ -124,10 +147,26 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
   });
 
   const onSubmit = (data: FormValues) => {
-    mutate(data);
+    console.log("Form submitted with data:", data);
+    console.log("Current user ID in onSubmit:", userId);
+    
+    if (!userId) {
+      toast({
+        title: 'Error',
+        description: 'No user ID found. Please log in again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    mutate({
+      ...data,
+      userId: userId
+    });
   };
 
   const handleCategoryChange = (value: string) => {
+    console.log("Category changed to:", value);
     const category = reminderCategories.find(c => c.value === value);
     if (category) {
       form.setValue('color', category.color);
@@ -146,7 +185,10 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(e) => {
+            console.log("Form submit event triggered");
+            form.handleSubmit(onSubmit)(e);
+          }} className="space-y-6">
             <FormField
               control={form.control}
               name="title"

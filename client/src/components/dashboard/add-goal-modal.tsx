@@ -51,7 +51,7 @@ const goalCategories = [
 
 // Extend the insert schema with additional validation
 const formSchema = z.object({
-  userId: z.number(),
+  userId: z.string(),
   title: z.string().min(1, 'Title is required'),
   target: z.number().positive('Target must be greater than 0'),
   current: z.number().min(0).optional().default(0),
@@ -74,7 +74,7 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      userId: userId || 0, // Fallback to 0, will be updated when user loads
+      userId: userId || '', // Fallback to empty string, will be updated when user loads
       title: '',
       target: 0,
       current: 0,

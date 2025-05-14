@@ -1,15 +1,33 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import mongoose from 'mongoose';
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+// Use MONGODB_URI instead of DATABASE_URL
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wellnessage';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Connection options
+const options = {
+  serverSelectionTimeoutMS: 5000,
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+  family: 4,
+  maxPoolSize: 10,
+  minPoolSize: 1,
+  maxIdleTimeMS: 30000,
+  autoIndex: true,
+  autoCreate: true,
+  heartbeatFrequencyMS: 10000,
+} as mongoose.ConnectOptions;
+
+// Connect to MongoDB
+export async function connectToDatabase() {
+  try {
+    await mongoose.connect(MONGODB_URI, options);
+    console.log('Successfully connected to MongoDB');
+  } catch (error) {
+    console.error('Error connecting to MongoDB:', error);
+    throw error;
+  }
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Export mongoose instance as db
+export const db = mongoose;

@@ -18,6 +18,7 @@ import {
   insertAiInsightSchema,
   insertHealthConsultationSchema
 } from "@shared/schema";
+import passport from 'passport';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -110,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a modified schema that makes most fields optional
       const modifiedSchema = z.object({
-        userId: z.number(),
+        userId: z.string(),
         date: z.string().or(z.date()).nullable().optional(),
         steps: z.number().nullable().optional(),
         activeMinutes: z.number().nullable().optional(),
@@ -147,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/users/:userId/health-data/latest", async (req, res) => {
-    const userId = parseInt(req.params.userId);
+    const userId = req.params.userId;
     const latestHealthData = await storage.getLatestHealthData(userId);
     return res.json(latestHealthData);
   });
@@ -172,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.get("/api/users/:userId/health-data/weekly", async (req, res) => {
-    const userId = parseInt(req.params.userId);
+    const userId = req.params.userId;
     // Log the audit event
     console.log(`AUDIT: view healthData multiple by user ${userId} (weekly data)`);
     const healthData = await storage.getHealthDataByUserId(userId);
@@ -365,24 +366,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Reminders routes
   app.get("/api/users/:userId/reminders", async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const reminders = await storage.getRemindersByUserId(userId);
+    const userId = req.params.userId;
+    const reminderStorage = isConnected() ? mongoStorage : storage;
+    const reminders = await reminderStorage.getRemindersByUserId(userId);
     return res.json(reminders);
   });
 
   app.post("/api/reminders", async (req, res) => {
     try {
+      console.log('Received reminder data:', req.body);
       const validatedData = insertReminderSchema.parse(req.body);
-      const reminder = await storage.createReminder(validatedData);
+      console.log('Validated reminder data:', validatedData);
+      
+      const reminderStorage = isConnected() ? mongoStorage : storage;
+      const reminder = await reminderStorage.createReminder(validatedData);
+      console.log('Created reminder:', reminder);
+      
       return res.status(201).json(reminder);
     } catch (error) {
+      console.error('Error creating reminder:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid reminder data",
+          errors: error.errors 
+        });
+      }
       return res.status(400).json({ message: "Invalid reminder data" });
     }
   });
 
   app.put("/api/reminders/:id/complete", async (req, res) => {
     const reminderId = parseInt(req.params.id);
-    const reminder = await storage.completeReminder(reminderId);
+    const reminderStorage = isConnected() ? mongoStorage : storage;
+    const reminder = await reminderStorage.completeReminder(reminderId);
     if (!reminder) {
       return res.status(404).json({ message: "Reminder not found" });
     }
@@ -400,59 +416,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Goal data received:', JSON.stringify(req.body));
       
-      // Log userId type since this might be the issue
-      console.log('userId type:', typeof req.body.userId);
-      console.log('userId value:', req.body.userId);
+      // Validate the incoming data
+      const validatedData = insertGoalSchema.parse(req.body);
+      console.log('Validated goal data:', validatedData);
       
-      // Manual validation to help diagnose
-      if (!req.body.userId) {
-        console.error('Missing userId in request');
-        return res.status(400).json({ message: "Missing userId in request" });
-      }
+      const goalStorage = isConnected() ? mongoStorage : storage;
+      const goal = await goalStorage.createGoal(validatedData);
+      console.log('Created goal:', goal);
       
-      if (!req.body.title) {
-        console.error('Missing title in request');
-        return res.status(400).json({ message: "Missing title in request" });
-      }
-      
-      if (!req.body.target) {
-        console.error('Missing target in request');
-        return res.status(400).json({ message: "Missing target in request" });
-      }
-      
-      if (!req.body.category) {
-        console.error('Missing category in request');
-        return res.status(400).json({ message: "Missing category in request" });
-      }
-      
-      // Simple validations passed, build the goal object manually
-      const goal = {
-        userId: Number(req.body.userId),
-        title: String(req.body.title),
-        target: Number(req.body.target),
-        current: req.body.current ? Number(req.body.current) : 0,
-        unit: req.body.unit ? String(req.body.unit) : '',
-        category: String(req.body.category),
-        startDate: req.body.startDate ? new Date(req.body.startDate) : new Date(),
-        endDate: req.body.endDate ? new Date(req.body.endDate) : null,
-      };
-      
-      console.log('Manual goal object:', goal);
-      const createdGoal = await storage.createGoal(goal);
       return res.status(201).json(goal);
-    } catch (error: any) {
-      // Get detailed validation errors
-      const errorDetails = error.errors ? JSON.stringify(error.errors) : error.message || String(error);
-      console.error('Goal validation error:', error);
-      console.error('Goal validation error details:', errorDetails);
-      console.error('Received goal data:', JSON.stringify(req.body));
-      
-      return res.status(400).json({ 
-        message: "Invalid goal data", 
-        error: error?.message || String(error),
-        details: error.errors || error.issues || null,
-        receivedData: req.body
-      });
+    } catch (error) {
+      console.error('Error creating goal:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid goal data",
+          errors: error.errors 
+        });
+      }
+      return res.status(400).json({ message: "Invalid goal data" });
     }
   });
 
@@ -476,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI Insights routes
   app.get("/api/users/:userId/ai-insights", async (req, res) => {
-    const userId = parseInt(req.params.userId);
+    const userId = req.params.userId;
     const insights = await storage.getAiInsightsByUserId(userId);
     return res.json(insights);
   });
@@ -742,4 +723,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   return httpServer;
+}
+
+export function setupAuthRoutes(app: Express) {
+  // Login route
+  app.post('/api/login', (req, res, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid username or password' });
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        return res.json({
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email
+        });
+      });
+    })(req, res, next);
+  });
+
+  // Logout route
+  app.post('/api/logout', (req, res) => {
+    req.logout(() => {
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+
+  // Get current user route
+  app.get('/api/user', (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    res.json({
+      id: req.user.id,
+      username: req.user.username,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      email: req.user.email
+    });
+  });
 }

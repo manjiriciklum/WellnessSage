@@ -34,7 +34,7 @@ type AddHealthDataModalProps = {
 
 // Extend the insert schema with additional validation
 const formSchema = z.object({
-  userId: z.number(),
+  userId: z.string(),
   date: z.date().optional().default(() => new Date()),
   steps: z.number().min(0).optional().nullable(),
   activeMinutes: z.number().min(0).optional().nullable(),
@@ -56,7 +56,7 @@ export function AddHealthDataModal({ isOpen, onClose }: AddHealthDataModalProps)
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      userId,
+      userId: userId || '',
       date: new Date(),
       steps: null,
       activeMinutes: null,
@@ -70,12 +70,21 @@ export function AddHealthDataModal({ isOpen, onClose }: AddHealthDataModalProps)
     },
   });
 
+  React.useEffect(() => {
+    if (userId) {
+      form.setValue('userId', userId);
+    }
+  }, [userId, form]);
+
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: FormValues) => {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
       // Clean up and format the data for API submission
-      // Ensure all fields are properly set with correct types
       const formattedData = {
-        userId: data.userId,
+        userId: userId,
         date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
         steps: data.steps !== null ? data.steps : null,
         activeMinutes: data.activeMinutes !== null ? data.activeMinutes : null,
@@ -124,6 +133,7 @@ export function AddHealthDataModal({ isOpen, onClose }: AddHealthDataModalProps)
   });
 
   const onSubmit = (data: FormValues) => {
+    console.log('Form submitted with data:', data);
     mutate(data);
   };
 
@@ -286,7 +296,7 @@ export function AddHealthDataModal({ isOpen, onClose }: AddHealthDataModalProps)
               />
             </div>
             
-            <DialogFooter>
+            <DialogFooter className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
                 Cancel
               </Button>

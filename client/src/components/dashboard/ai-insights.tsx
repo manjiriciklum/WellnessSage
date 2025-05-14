@@ -5,10 +5,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Brain, Utensils, Dumbbell } from 'lucide-react';
 import { getColorForCategory, getIconForCategory } from '@/lib/utils';
 import { type AiInsight } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
 
 export function AiInsights() {
+  const { user } = useAuth();
+  const userId = user?.id;
+
   const { data: insights, isLoading } = useQuery<AiInsight[]>({
-    queryKey: ['/api/users/1/ai-insights'],
+    queryKey: [`/api/users/${userId}/ai-insights`],
+    enabled: !!userId,
   });
 
   const getIconComponent = (category: string) => {

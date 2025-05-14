@@ -194,7 +194,7 @@ export type Doctor = typeof doctors.$inferSelect;
 // Reminder Model
 export const reminders = pgTable("reminders", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: text("user_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),
   time: text("time"),
@@ -221,7 +221,7 @@ export type Reminder = typeof reminders.$inferSelect;
 // Goal Model
 export const goals = pgTable("goals", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: text("user_id").notNull(),
   title: text("title").notNull(),
   target: integer("target").notNull(),
   current: integer("current").default(0),

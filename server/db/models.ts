@@ -8,6 +8,10 @@ export interface IUser extends Document {
   lastName: string;
   email: string;
   profileImage?: string;
+  role?: string;
+  oauthProvider?: string;
+  oauthId?: string;
+  lastLogin?: Date;
   createdAt: Date;
 }
 
@@ -23,6 +27,7 @@ export interface IHealthData extends Document {
   heartRate: number;
   healthScore: number;
   stressLevel: number;
+  healthMetrics?: Record<string, any>;
 }
 
 // WearableDevice Interface
@@ -30,8 +35,15 @@ export interface IWearableDevice extends Document {
   userId: mongoose.Types.ObjectId | string;
   deviceName: string;
   deviceType: string;
+  deviceModel?: string;
+  manufacturer?: string;
+  serialNumber?: string;
+  firmwareVersion?: string;
   isConnected: boolean;
   lastSynced: Date;
+  batteryLevel?: number;
+  capabilities?: string[];
+  connectionSettings?: Record<string, any>;
 }
 
 // WellnessPlan Interface
@@ -42,7 +54,9 @@ export interface IWellnessPlan extends Document {
   description: string;
   startDate: Date;
   endDate: Date;
-  goals: object;
+  goals: Record<string, any>;
+  status: 'active' | 'completed' | 'cancelled';
+  createdAt: Date;
 }
 
 // Doctor Interface
@@ -50,11 +64,12 @@ export interface IDoctor extends Document {
   firstName: string;
   lastName: string;
   specialty: string;
-  practice: string; // Changed from hospital to practice
+  practice: string;
   location: string;
   rating: number;
-  reviewCount: number; // Added reviewCount
+  reviewCount: number;
   profileImage: string;
+  createdAt: Date;
 }
 
 // Reminder Interface
@@ -67,6 +82,7 @@ export interface IReminder extends Document {
   frequency: string;
   isCompleted: boolean;
   color: string;
+  createdAt: Date;
 }
 
 // Goal Interface
@@ -79,6 +95,8 @@ export interface IGoal extends Document {
   startDate: Date;
   endDate: Date;
   unit: string;
+  status: 'in_progress' | 'completed' | 'cancelled';
+  createdAt: Date;
 }
 
 // AIInsight Interface
@@ -100,6 +118,7 @@ export interface IHealthConsultation extends Document {
   recommendations: string;
   severity: string;
   createdAt: Date;
+  status: 'scheduled' | 'completed' | 'cancelled';
 }
 
 // ChatMessage Interface for storing chat history
@@ -118,28 +137,40 @@ const UserSchema = new Schema<IUser>({
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   profileImage: { type: String, default: null },
+  role: { type: String, default: 'user' },
+  oauthProvider: { type: String, default: null },
+  oauthId: { type: String, default: null },
+  lastLogin: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 
 const HealthDataSchema = new Schema<IHealthData>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   date: { type: Date, default: Date.now },
-  steps: { type: Number, default: null },
-  activeMinutes: { type: Number, default: null },
-  calories: { type: Number, default: null },
-  sleepHours: { type: Number, default: null },
-  sleepQuality: { type: Number, default: null },
-  heartRate: { type: Number, default: null },
-  healthScore: { type: Number, default: null },
-  stressLevel: { type: Number, default: null }
+  steps: { type: Number, default: 0 },
+  activeMinutes: { type: Number, default: 0 },
+  calories: { type: Number, default: 0 },
+  sleepHours: { type: Number, default: 0 },
+  sleepQuality: { type: Number, default: 0 },
+  heartRate: { type: Number, default: 0 },
+  healthScore: { type: Number, default: 0 },
+  stressLevel: { type: Number, default: 0 },
+  healthMetrics: { type: Schema.Types.Mixed, default: {} }
 });
 
 const WearableDeviceSchema = new Schema<IWearableDevice>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   deviceName: { type: String, required: true },
   deviceType: { type: String, required: true },
+  deviceModel: { type: String, default: null },
+  manufacturer: { type: String, default: null },
+  serialNumber: { type: String, default: null },
+  firmwareVersion: { type: String, default: null },
   isConnected: { type: Boolean, default: false },
-  lastSynced: { type: Date, default: null }
+  lastSynced: { type: Date, default: null },
+  batteryLevel: { type: Number, default: null },
+  capabilities: { type: [String], default: [] },
+  connectionSettings: { type: Schema.Types.Mixed, default: {} }
 });
 
 const WellnessPlanSchema = new Schema<IWellnessPlan>({
@@ -149,7 +180,9 @@ const WellnessPlanSchema = new Schema<IWellnessPlan>({
   description: { type: String, default: null },
   startDate: { type: Date, required: true },
   endDate: { type: Date, default: null },
-  goals: { type: Schema.Types.Mixed, required: true }
+  goals: { type: Schema.Types.Mixed, required: true },
+  status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const DoctorSchema = new Schema<IDoctor>({
@@ -159,8 +192,9 @@ const DoctorSchema = new Schema<IDoctor>({
   practice: { type: String, required: true },
   location: { type: String, required: true },
   rating: { type: Number, required: true },
-  reviewCount: { type: Number, default: null },
-  profileImage: { type: String, required: true }
+  reviewCount: { type: Number, default: 0 },
+  profileImage: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const ReminderSchema = new Schema<IReminder>({
@@ -171,7 +205,8 @@ const ReminderSchema = new Schema<IReminder>({
   time: { type: String, default: null },
   frequency: { type: String, default: null },
   isCompleted: { type: Boolean, default: false },
-  color: { type: String, default: null }
+  color: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const GoalSchema = new Schema<IGoal>({
@@ -180,9 +215,11 @@ const GoalSchema = new Schema<IGoal>({
   category: { type: String, required: true },
   target: { type: Number, required: true },
   current: { type: Number, default: 0 },
-  startDate: { type: Date, default: null },
+  startDate: { type: Date, default: Date.now },
   endDate: { type: Date, default: null },
-  unit: { type: String, default: null }
+  unit: { type: String, default: null },
+  status: { type: String, enum: ['in_progress', 'completed', 'cancelled'], default: 'in_progress' },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const AIInsightSchema = new Schema<IAIInsight>({
@@ -201,7 +238,8 @@ const HealthConsultationSchema = new Schema<IHealthConsultation>({
   analysis: { type: String, required: true },
   recommendations: { type: String, required: true },
   severity: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' }
 });
 
 const ChatMessageSchema = new Schema<IChatMessage>({

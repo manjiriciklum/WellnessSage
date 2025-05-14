@@ -2,12 +2,13 @@ import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
-import { Express, Request } from 'express';
+import { Express, Request, Response, NextFunction } from 'express';
 import session from 'express-session';
 import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { storage } from './storage';
 import { User as SelectUser } from '@shared/schema';
+import crypto from 'crypto';
 
 declare global {
   namespace Express {
@@ -17,17 +18,44 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString('hex');
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString('hex')}.${salt}`;
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split('.');
-  const hashedBuf = Buffer.from(hashed, 'hex');
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    console.error('Comparing passwords:', { supplied, stored });
+    
+    // Try pbkdf2 format first (hash and salt are separate)
+    if (stored.includes('.')) {
+      const [hash, salt] = stored.split('.');
+      if (hash && salt) {
+        const verifyHash = crypto.pbkdf2Sync(supplied, salt, 10000, 64, 'sha512').toString('hex');
+        const result = hash === verifyHash;
+        console.error('[comparePasswords] PBKDF2 branch:', { hash, salt, verifyHash, result });
+        if (result) return true;
+      }
+    }
+    
+    // Try scrypt format as fallback
+    const [hashed, salt] = stored.split('.');
+    if (hashed && salt) {
+      const hashedBuf = Buffer.from(hashed, 'hex');
+      const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+      const result = timingSafeEqual(hashedBuf, suppliedBuf);
+      console.error('[comparePasswords] Scrypt branch:', { hashed, salt, suppliedBuf: suppliedBuf.toString('hex'), result });
+      if (result) return true;
+    }
+    
+    // If we get here, no comparison method worked
+    console.error('[comparePasswords] All comparison methods failed');
+    return false;
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -55,7 +83,14 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        let passwordResult = false;
+        if (user) {
+          passwordResult = await comparePasswords(password, user.password);
+          console.error('[LocalStrategy] comparePasswords result:', passwordResult, 'for user:', username);
+        } else {
+          console.error('[LocalStrategy] No user found for username:', username);
+        }
+        if (!user || !passwordResult) {
           return done(null, false, { message: 'Invalid username or password' });
         } else {
           return done(null, user);
@@ -189,7 +224,7 @@ export function setupAuth(app: Express) {
 
   // Login endpoint
   app.post('/api/login', (req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+    passport.authenticate('local', (err: Error | null, user: Express.User | false, info: { message?: string }) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ error: info?.message || 'Authentication failed' });
       
@@ -202,9 +237,21 @@ export function setupAuth(app: Express) {
 
   // Logout endpoint
   app.post('/api/logout', (req, res, next) => {
-    req.logout((err) => {
-      if (err) return next(err);
-      res.sendStatus(200);
+    if (!req.session) {
+      return res.status(200).json({ message: 'No active session' });
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Error destroying session:', err);
+        return next(err);
+      }
+      
+      // Clear the session cookie
+      res.clearCookie('connect.sid');
+      
+      // Send success response
+      res.status(200).json({ message: 'Logged out successfully' });
     });
   });
 
@@ -236,14 +283,14 @@ export function setupAuth(app: Express) {
 }
 
 // Middleware for route protection
-export function isAuthenticated(req: Request, res: Express.Response, next: Express.NextFunction) {
+export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated()) {
     return next();
   }
   res.status(401).json({ error: 'Not authenticated' });
 }
 
-export function isAdmin(req: Request, res: Express.Response, next: Express.NextFunction) {
+export function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated() && req.user.role === 'admin') {
     return next();
   }

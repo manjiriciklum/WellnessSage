@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { auditLogMiddleware, requireTLS, sessionTimeout } from "./security";
-import { connectToDatabase } from "./db/mongodb";
+import { connectToDatabase, isConnected } from "./db/mongodb";
 // Import MongoDB storage as our primary data store
 import { mongoStorage } from "./db/mongo-storage";
 // Set the storage implementation to use MongoDB
@@ -53,47 +53,54 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Try to connect to MongoDB but don't wait for it to complete before starting the server
-  // This way the server can start up quickly and fall back to in-memory storage if needed
-  connectToDatabase()
-    .then(() => {
-      log('MongoDB connection initialized');
-      // No need to switch implementation here as we're using MemStorage fallback
-    })
-    .catch(error => {
-      log('Failed to connect to MongoDB, using in-memory storage as fallback');
-      console.error('MongoDB connection error:', error);
+  try {
+    // Connect to MongoDB before starting the server
+    await connectToDatabase();
+    
+    // Verify connection is established
+    if (!isConnected()) {
+      throw new Error('Failed to establish MongoDB connection');
+    }
+    
+    log('MongoDB connection initialized');
+    
+    // Set MongoDB as the storage implementation
+    setStorageImplementation(mongoStorage);
+    log('Using MongoDB storage implementation');
+
+    // Register routes and start server
+    const server = await registerRoutes(app);
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      res.status(status).json({ message });
+      throw err;
     });
 
-  // Continue with server startup regardless of MongoDB connection status
-  const server = await registerRoutes(app);
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+    const port = process.env.PORT || 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

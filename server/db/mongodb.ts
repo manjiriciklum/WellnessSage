@@ -2,15 +2,13 @@ import mongoose from 'mongoose';
 import { logAuditEvent } from '../security';
 
 // Initialize MongoDB connection URI
-let MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URL;
+let MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wellnesssage';
 
-// Set dummy MongoDB parameters for development
-if (process.env.NODE_ENV === 'development' && !process.env.MONGODB_URI && !process.env.MONGODB_HOST) {
-  process.env.MONGODB_USERNAME = 'dummy_user';
-  process.env.MONGODB_PASSWORD = 'dummy_password';
-  process.env.MONGODB_HOST = 'dummycluster.mongodb.net';
-  process.env.MONGODB_DATABASE = 'healthcare_db';
-  console.log('Using dummy MongoDB credentials for development');
+// Remove dummy credentials setup for development
+// Always use local MongoDB in development if no URI is provided
+if (!MONGODB_URI) {
+  MONGODB_URI = 'mongodb://localhost:27017/wellnesssage';
+  console.log('Using local MongoDB URI:', MONGODB_URI);
 }
 
 // Check if we need to create MongoDB connection URL from individual credentials
@@ -18,62 +16,77 @@ if (!MONGODB_URI && process.env.MONGODB_USERNAME && process.env.MONGODB_PASSWORD
   const username = encodeURIComponent(process.env.MONGODB_USERNAME);
   const password = encodeURIComponent(process.env.MONGODB_PASSWORD);
   const host = process.env.MONGODB_HOST;
-  const dbName = process.env.MONGODB_DATABASE || 'healthcare_db';
+  const dbName = process.env.MONGODB_DATABASE || 'wellnesssage';
   MONGODB_URI = `mongodb+srv://${username}:${password}@${host}/${dbName}?retryWrites=true&w=majority`;
   console.log('Constructed MongoDB URI from environment variables');
 } else if (!MONGODB_URI) {
   // Fallback to local MongoDB if no credentials provided
-  MONGODB_URI = 'mongodb://localhost:27017/healthcare_db';
+  MONGODB_URI = 'mongodb://localhost:27017/wellnesssage';
   console.log('Using local MongoDB fallback URI');
 }
 
 // Connection options - production-ready settings with updated syntax
 const options = {
-  serverSelectionTimeoutMS: 5000, // 5 seconds timeout for server selection
-  connectTimeoutMS: 10000, // 10 seconds timeout for initial connection
+  serverSelectionTimeoutMS: 30000, // 30 seconds timeout for server selection
+  connectTimeoutMS: 30000, // 30 seconds timeout for initial connection
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   family: 4, // Use IPv4, skip trying IPv6
   maxPoolSize: 10, // Maintain up to 10 socket connections
   minPoolSize: 1, // Maintain at least 1 socket connection
   maxIdleTimeMS: 30000, // Close idle connections after 30 seconds
-  // Note: autoReconnect option is deprecated and removed, the driver now reconnects by default
   autoIndex: true, // Build indexes
-  // Auto-create collections if they don't exist
-  autoCreate: true,
+  autoCreate: true, // Auto-create collections if they don't exist
   heartbeatFrequencyMS: 10000, // 10 seconds
 } as mongoose.ConnectOptions;
+
+let isConnecting = false;
+let connectionPromise: Promise<void> | null = null;
 
 /**
  * Connect to MongoDB database with retry functionality
  */
 export async function connectToDatabase(retryAttempts = 3, retryDelay = 3000) {
-  if (mongoose.connection.readyState >= 1) {
-    return; // If already connected, return
+  // If already connected, return
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  // If connection is in progress, wait for it
+  if (isConnecting && connectionPromise) {
+    return connectionPromise;
   }
 
   // Function to attempt connection with retries
   const attemptConnection = async (attemptsLeft: number): Promise<void> => {
     try {
-      // Ensure URI exists and log it (masking credentials)
-      if (MONGODB_URI) {
-        console.log(`Attempting to connect to MongoDB: ${MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')}`);
-        await mongoose.connect(MONGODB_URI, options);
-      } else {
-        throw new Error('MongoDB URI is not defined');
-      }
-      console.log('Successfully connected to MongoDB');
-      
-      // Set up event listeners after successful connection
-      setupMongooseEventListeners();
-      
+      isConnecting = true;
+      connectionPromise = new Promise(async (resolve, reject) => {
+        try {
+          // Ensure URI exists and log it (masking credentials)
+          if (MONGODB_URI) {
+            console.log(`Attempting to connect to MongoDB: ${MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')}`);
+            
+            // Set up event listeners before connecting
+            setupMongooseEventListeners();
+            
+            await mongoose.connect(MONGODB_URI, options);
+            console.log('Successfully connected to MongoDB');
+            resolve();
+          } else {
+            throw new Error('MongoDB URI is not defined');
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      await connectionPromise;
     } catch (error) {
       // If this is a development environment with dummy credentials, provide a helpful message
       if (process.env.NODE_ENV === 'development' && process.env.MONGODB_USERNAME === 'dummy_user') {
         console.warn('Failed to connect to MongoDB with dummy credentials.');
         console.warn('This is expected in development. You can provide real MongoDB credentials via environment variables when needed.');
-        // Skip retries with dummy credentials to speed up startup
-        console.warn('Application will continue with in-memory storage fallback.');
-        return;
+        throw new Error('MongoDB connection failed with dummy credentials');
       } else {
         console.error(`Error connecting to MongoDB (${attemptsLeft} attempts left):`, error);
         
@@ -83,11 +96,12 @@ export async function connectToDatabase(retryAttempts = 3, retryDelay = 3000) {
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           return attemptConnection(attemptsLeft - 1);
         } else {
-          console.warn('Maximum MongoDB connection retry attempts reached.');
-          console.warn('Application will continue with in-memory storage fallback.');
-          // Allow app to continue with in-memory storage
+          throw new Error('Maximum MongoDB connection retry attempts reached');
         }
       }
+    } finally {
+      isConnecting = false;
+      connectionPromise = null;
     }
   };
   
@@ -143,7 +157,6 @@ export function isConnected(): boolean {
 
 /**
  * Perform a health check on the MongoDB connection
- * Returns details about the connection status and performance
  */
 export async function checkMongoDBHealth(): Promise<{ 
   connected: boolean;
@@ -161,10 +174,8 @@ export async function checkMongoDBHealth(): Promise<{
   }
 
   try {
-    // Measure response time
     const startTime = Date.now();
     
-    // Check if db exists first
     if (!mongoose.connection.db) {
       return {
         connected: false,
@@ -173,12 +184,10 @@ export async function checkMongoDBHealth(): Promise<{
       };
     }
     
-    // Run a simple command to check if the database is responsive
     const result = await mongoose.connection.db.admin().ping();
     const endTime = Date.now();
     
     if (result && result.ok === 1) {
-      // Get server information if the ping was successful
       const serverInfo = await mongoose.connection.db.admin().serverInfo();
       
       return {
@@ -199,7 +208,7 @@ export async function checkMongoDBHealth(): Promise<{
         error: 'Database ping returned unexpected result'
       };
     }
-  } catch (error: any) { // Type error as 'any' to access message property
+  } catch (error: any) {
     return {
       connected: false,
       status: 'error',

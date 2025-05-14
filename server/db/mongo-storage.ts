@@ -15,6 +15,7 @@ import {
   HealthConsultation, InsertHealthConsultation
 } from '@shared/schema';
 import { analyzeHealthSymptoms } from '../openai';
+import { ObjectId } from 'mongodb';
 
 /**
  * MongoDB Storage implementation that follows the IStorage interface
@@ -45,6 +46,10 @@ export class MongoStorage implements IStorage {
         lastName: user.lastName,
         email: user.email,
         profileImage: user.profileImage || null,
+        role: user.role || null,
+        oauthProvider: user.oauthProvider || null,
+        oauthId: user.oauthId || null,
+        lastLogin: user.lastLogin || null,
         createdAt: user.createdAt
       };
     } catch (error) {
@@ -69,6 +74,10 @@ export class MongoStorage implements IStorage {
         lastName: user.lastName,
         email: user.email,
         profileImage: user.profileImage || null,
+        role: user.role || null,
+        oauthProvider: user.oauthProvider || null,
+        oauthId: user.oauthId || null,
+        lastLogin: user.lastLogin || null,
         createdAt: user.createdAt
       };
     } catch (error) {
@@ -93,6 +102,10 @@ export class MongoStorage implements IStorage {
         lastName: user.lastName,
         email: user.email,
         profileImage: user.profileImage || null,
+        role: user.role || null,
+        oauthProvider: user.oauthProvider || null,
+        oauthId: user.oauthId || null,
+        lastLogin: user.lastLogin || null,
         createdAt: user.createdAt
       };
     } catch (error) {
@@ -102,16 +115,34 @@ export class MongoStorage implements IStorage {
   }
 
   // Health Data methods
-  async getHealthDataByUserId(userId: number): Promise<HealthData[]> {
+  async getHealthDataByUserId(userId: string | number): Promise<HealthData[]> {
     try {
-      if (!isConnected()) return memStorage.getHealthDataByUserId(userId);
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return memStorage.getHealthDataByUserId(userId);
+      }
       
       logMongoDBAccess(userId, 'view', 'HealthData', 'multiple');
-      const healthDataArray = await models.HealthData.find({ userId });
+      
+      // Convert string ID to MongoDB ObjectId
+      let objectId;
+      try {
+        if (typeof userId === 'string') {
+          objectId = new mongoose.Types.ObjectId(userId);
+        } else {
+          const hexId = userId.toString(16).padStart(24, '0');
+          objectId = new mongoose.Types.ObjectId(hexId);
+        }
+      } catch (error) {
+        console.error('Error creating ObjectId for health data:', error);
+        return []; // Return empty array if we can't create a valid ObjectId
+      }
+      
+      const healthDataArray = await models.HealthData.find({ userId: objectId });
       
       return healthDataArray.map(data => ({
-        id: data._id as unknown as number,
-        userId: data.userId as unknown as number,
+        id: data._id.toString(),
+        userId: data.userId.toString(),
         date: data.date,
         steps: data.steps,
         activeMinutes: data.activeMinutes,
@@ -120,25 +151,52 @@ export class MongoStorage implements IStorage {
         sleepQuality: data.sleepQuality,
         heartRate: data.heartRate,
         healthScore: data.healthScore,
-        stressLevel: data.stressLevel
+        stressLevel: data.stressLevel,
+        healthMetrics: data.healthMetrics || {}
       }));
     } catch (error) {
       console.error('Error getting health data from MongoDB:', error);
-      return memStorage.getHealthDataByUserId(userId);
+      return []; // Return empty array instead of recursing
     }
   }
 
-  async getLatestHealthData(userId: number): Promise<HealthData | undefined> {
+  async getLatestHealthData(userId: string | number): Promise<HealthData | undefined> {
     try {
-      if (!isConnected()) return memStorage.getLatestHealthData(userId);
+      if (!isConnected()) {
+        // Use the in-memory storage's implementation directly
+        const userHealthData = await memStorage.getHealthDataByUserId(userId);
+        if (userHealthData.length === 0) return undefined;
+        
+        return userHealthData.reduce((latest, current) => {
+          if (!latest.date || (current.date && current.date > latest.date)) {
+            return current;
+          }
+          return latest;
+        });
+      }
       
       logMongoDBAccess(userId, 'view', 'HealthData', 'latest');
-      const healthData = await models.HealthData.findOne({ userId }).sort({ date: -1 });
+      
+      // Convert string ID to MongoDB ObjectId
+      let objectId;
+      try {
+        if (typeof userId === 'string') {
+          objectId = new mongoose.Types.ObjectId(userId);
+        } else {
+          const hexId = userId.toString(16).padStart(24, '0');
+          objectId = new mongoose.Types.ObjectId(hexId);
+        }
+      } catch (error) {
+        console.error('Error creating ObjectId for latest health data:', error);
+        return undefined;
+      }
+      
+      const healthData = await models.HealthData.findOne({ userId: objectId }).sort({ date: -1 });
       if (!healthData) return undefined;
       
       return {
-        id: healthData._id as unknown as number,
-        userId: healthData.userId as unknown as number,
+        id: healthData._id.toString(),
+        userId: healthData.userId.toString(),
         date: healthData.date,
         steps: healthData.steps,
         activeMinutes: healthData.activeMinutes,
@@ -147,11 +205,12 @@ export class MongoStorage implements IStorage {
         sleepQuality: healthData.sleepQuality,
         heartRate: healthData.heartRate,
         healthScore: healthData.healthScore,
-        stressLevel: healthData.stressLevel
+        stressLevel: healthData.stressLevel,
+        healthMetrics: healthData.healthMetrics || {}
       };
     } catch (error) {
       console.error('Error getting latest health data from MongoDB:', error);
-      return memStorage.getLatestHealthData(userId);
+      return undefined;
     }
   }
 
@@ -159,14 +218,22 @@ export class MongoStorage implements IStorage {
     try {
       if (!isConnected()) return memStorage.createHealthData(insertData);
       
-      // For HIPAA compliance, sensitive health metrics are encrypted
       logMongoDBAccess(insertData.userId, 'create', 'HealthData');
-      const healthData = new models.HealthData(insertData);
+      
+      // Convert string userId to ObjectId if needed
+      const userId = typeof insertData.userId === 'string' 
+        ? new mongoose.Types.ObjectId(insertData.userId)
+        : new mongoose.Types.ObjectId(insertData.userId.toString(16).padStart(24, '0'));
+      
+      const healthData = new models.HealthData({
+        ...insertData,
+        userId
+      });
       await healthData.save();
       
       return {
-        id: healthData._id as unknown as number,
-        userId: healthData.userId as unknown as number,
+        id: healthData._id.toString(),
+        userId: healthData.userId.toString(),
         date: healthData.date,
         steps: healthData.steps,
         activeMinutes: healthData.activeMinutes,
@@ -175,7 +242,8 @@ export class MongoStorage implements IStorage {
         sleepQuality: healthData.sleepQuality,
         heartRate: healthData.heartRate,
         healthScore: healthData.healthScore,
-        stressLevel: healthData.stressLevel
+        stressLevel: healthData.stressLevel,
+        healthMetrics: healthData.healthMetrics || {}
       };
     } catch (error) {
       console.error('Error creating health data in MongoDB:', error);
@@ -186,22 +254,42 @@ export class MongoStorage implements IStorage {
   // Wearable Device methods
   async getWearableDevicesByUserId(userId: number): Promise<WearableDevice[]> {
     try {
-      if (!isConnected()) return memStorage.getWearableDevicesByUserId(userId);
+      if (!isConnected()) {
+        return memStorage.getWearableDevicesByUserId(userId);
+      }
       
       logMongoDBAccess(userId, 'view', 'WearableDevice', 'multiple');
-      const devices = await models.WearableDevice.find({ userId });
+      
+      // Convert numeric ID to a valid MongoDB ObjectId
+      let objectId;
+      try {
+        const hexId = userId.toString(16).padStart(24, '0');
+        objectId = new mongoose.Types.ObjectId(hexId);
+      } catch (error) {
+        console.error('Error creating ObjectId for wearable devices:', error);
+        return []; // Return empty array if we can't create a valid ObjectId
+      }
+      
+      const devices = await models.WearableDevice.find({ userId: objectId });
       
       return devices.map(device => ({
         id: device._id as unknown as number,
         userId: device.userId as unknown as number,
         deviceName: device.deviceName,
         deviceType: device.deviceType,
+        deviceModel: device.deviceModel || null,
+        manufacturer: device.manufacturer || null,
+        serialNumber: device.serialNumber || null,
+        firmwareVersion: device.firmwareVersion || null,
         isConnected: device.isConnected,
-        lastSynced: device.lastSynced
+        lastSynced: device.lastSynced,
+        batteryLevel: device.batteryLevel || null,
+        capabilities: device.capabilities || [],
+        connectionSettings: device.connectionSettings || {}
       }));
     } catch (error) {
       console.error('Error getting wearable devices from MongoDB:', error);
-      return memStorage.getWearableDevicesByUserId(userId);
+      return []; // Return empty array instead of recursing
     }
   }
 
@@ -218,8 +306,15 @@ export class MongoStorage implements IStorage {
         userId: device.userId as unknown as number,
         deviceName: device.deviceName,
         deviceType: device.deviceType,
+        deviceModel: device.deviceModel || null,
+        manufacturer: device.manufacturer || null,
+        serialNumber: device.serialNumber || null,
+        firmwareVersion: device.firmwareVersion || null,
         isConnected: device.isConnected,
-        lastSynced: device.lastSynced
+        lastSynced: device.lastSynced,
+        batteryLevel: device.batteryLevel || null,
+        capabilities: device.capabilities || [],
+        connectionSettings: device.connectionSettings || {}
       };
     } catch (error) {
       console.error('Error getting wearable device from MongoDB:', error);
@@ -240,8 +335,15 @@ export class MongoStorage implements IStorage {
         userId: device.userId as unknown as number,
         deviceName: device.deviceName,
         deviceType: device.deviceType,
+        deviceModel: device.deviceModel || null,
+        manufacturer: device.manufacturer || null,
+        serialNumber: device.serialNumber || null,
+        firmwareVersion: device.firmwareVersion || null,
         isConnected: device.isConnected,
-        lastSynced: device.lastSynced
+        lastSynced: device.lastSynced,
+        batteryLevel: device.batteryLevel || null,
+        capabilities: device.capabilities || [],
+        connectionSettings: device.connectionSettings || {}
       };
     } catch (error) {
       console.error('Error creating wearable device in MongoDB:', error);
@@ -266,8 +368,15 @@ export class MongoStorage implements IStorage {
         userId: device.userId as unknown as number,
         deviceName: device.deviceName,
         deviceType: device.deviceType,
+        deviceModel: device.deviceModel || null,
+        manufacturer: device.manufacturer || null,
+        serialNumber: device.serialNumber || null,
+        firmwareVersion: device.firmwareVersion || null,
         isConnected: device.isConnected,
-        lastSynced: device.lastSynced
+        lastSynced: device.lastSynced,
+        batteryLevel: device.batteryLevel || null,
+        capabilities: device.capabilities || [],
+        connectionSettings: device.connectionSettings || {}
       };
     } catch (error) {
       console.error('Error connecting wearable device in MongoDB:', error);
@@ -292,8 +401,15 @@ export class MongoStorage implements IStorage {
         userId: device.userId as unknown as number,
         deviceName: device.deviceName,
         deviceType: device.deviceType,
+        deviceModel: device.deviceModel || null,
+        manufacturer: device.manufacturer || null,
+        serialNumber: device.serialNumber || null,
+        firmwareVersion: device.firmwareVersion || null,
         isConnected: device.isConnected,
-        lastSynced: device.lastSynced
+        lastSynced: device.lastSynced,
+        batteryLevel: device.batteryLevel || null,
+        capabilities: device.capabilities || [],
+        connectionSettings: device.connectionSettings || {}
       };
     } catch (error) {
       console.error('Error disconnecting wearable device in MongoDB:', error);
@@ -523,10 +639,23 @@ export class MongoStorage implements IStorage {
   // Reminder methods
   async getRemindersByUserId(userId: number): Promise<Reminder[]> {
     try {
-      if (!isConnected()) return memStorage.getRemindersByUserId(userId);
+      if (!isConnected()) {
+        return memStorage.getRemindersByUserId(userId);
+      }
       
       logMongoDBAccess(userId, 'view', 'Reminder', 'multiple');
-      const reminders = await models.Reminder.find({ userId });
+      
+      // Convert numeric ID to a valid MongoDB ObjectId
+      let objectId;
+      try {
+        const hexId = userId.toString(16).padStart(24, '0');
+        objectId = new mongoose.Types.ObjectId(hexId);
+      } catch (error) {
+        console.error('Error creating ObjectId for reminders:', error);
+        return []; // Return empty array if we can't create a valid ObjectId
+      }
+      
+      const reminders = await models.Reminder.find({ userId: objectId });
       
       return reminders.map(reminder => ({
         id: reminder._id as unknown as number,
@@ -541,7 +670,7 @@ export class MongoStorage implements IStorage {
       }));
     } catch (error) {
       console.error('Error getting reminders from MongoDB:', error);
-      return memStorage.getRemindersByUserId(userId);
+      return []; // Return empty array instead of recursing
     }
   }
 
@@ -570,28 +699,47 @@ export class MongoStorage implements IStorage {
     }
   }
 
-  async createReminder(insertReminder: InsertReminder): Promise<Reminder> {
+  async createReminder(data: InsertReminder): Promise<Reminder> {
     try {
-      if (!isConnected()) return memStorage.createReminder(insertReminder);
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return memStorage.createReminder(data);
+      }
       
-      logMongoDBAccess(insertReminder.userId, 'create', 'Reminder');
-      const reminder = new models.Reminder(insertReminder);
+      console.log('Creating reminder in MongoDB:', data);
+      
+      // Create a new reminder document using Mongoose model
+      const reminder = new models.Reminder({
+        userId: new mongoose.Types.ObjectId(data.userId),
+        title: data.title,
+        description: data.description || '',
+        time: data.time || '',
+        frequency: data.frequency || 'once',
+        isCompleted: data.isCompleted || false,
+        category: data.category,
+        color: data.color || '#1e88e5',
+        createdAt: new Date()
+      });
+
+      // Save the reminder
       await reminder.save();
-      
+      console.log('Saved reminder:', reminder);
+
+      // Return the created reminder with proper type conversions
       return {
-        id: reminder._id as unknown as number,
-        userId: reminder.userId as unknown as number,
+        id: reminder._id.toString(),
+        userId: reminder.userId.toString(),
         title: reminder.title,
         description: reminder.description,
-        category: reminder.category,
         time: reminder.time,
         frequency: reminder.frequency,
         isCompleted: reminder.isCompleted,
+        category: reminder.category,
         color: reminder.color
       };
     } catch (error) {
-      console.error('Error creating reminder in MongoDB:', error);
-      return memStorage.createReminder(insertReminder);
+      console.error('Error creating reminder:', error);
+      throw error;
     }
   }
 
@@ -627,10 +775,23 @@ export class MongoStorage implements IStorage {
   // Goal methods
   async getGoalsByUserId(userId: number): Promise<Goal[]> {
     try {
-      if (!isConnected()) return memStorage.getGoalsByUserId(userId);
+      if (!isConnected()) {
+        return memStorage.getGoalsByUserId(userId);
+      }
       
       logMongoDBAccess(userId, 'view', 'Goal', 'multiple');
-      const goals = await models.Goal.find({ userId });
+      
+      // Convert numeric ID to a valid MongoDB ObjectId
+      let objectId;
+      try {
+        const hexId = userId.toString(16).padStart(24, '0');
+        objectId = new mongoose.Types.ObjectId(hexId);
+      } catch (error) {
+        console.error('Error creating ObjectId for goals:', error);
+        return []; // Return empty array if we can't create a valid ObjectId
+      }
+      
+      const goals = await models.Goal.find({ userId: objectId });
       
       return goals.map(goal => ({
         id: goal._id as unknown as number,
@@ -645,7 +806,7 @@ export class MongoStorage implements IStorage {
       }));
     } catch (error) {
       console.error('Error getting goals from MongoDB:', error);
-      return memStorage.getGoalsByUserId(userId);
+      return []; // Return empty array instead of recursing
     }
   }
 
@@ -674,28 +835,47 @@ export class MongoStorage implements IStorage {
     }
   }
 
-  async createGoal(insertGoal: InsertGoal): Promise<Goal> {
+  async createGoal(data: InsertGoal): Promise<Goal> {
     try {
-      if (!isConnected()) return memStorage.createGoal(insertGoal);
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return memStorage.createGoal(data);
+      }
       
-      logMongoDBAccess(insertGoal.userId, 'create', 'Goal');
-      const goal = new models.Goal(insertGoal);
+      console.log('Creating goal in MongoDB:', data);
+      
+      // Create a new goal document using Mongoose model
+      const goal = new models.Goal({
+        userId: new mongoose.Types.ObjectId(data.userId),
+        title: data.title,
+        target: data.target,
+        current: data.current || 0,
+        unit: data.unit || '',
+        startDate: data.startDate || new Date(),
+        endDate: data.endDate || null,
+        category: data.category,
+        createdAt: new Date()
+      });
+
+      // Save the goal
       await goal.save();
-      
+      console.log('Saved goal:', goal);
+
+      // Return the created goal with proper type conversions
       return {
-        id: goal._id as unknown as number,
-        userId: goal.userId as unknown as number,
+        id: goal._id.toString(),
+        userId: goal.userId.toString(),
         title: goal.title,
-        category: goal.category,
         target: goal.target,
         current: goal.current,
+        unit: goal.unit,
         startDate: goal.startDate,
         endDate: goal.endDate,
-        unit: goal.unit
+        category: goal.category
       };
     } catch (error) {
-      console.error('Error creating goal in MongoDB:', error);
-      return memStorage.createGoal(insertGoal);
+      console.error('Error creating goal:', error);
+      throw error;
     }
   }
 
@@ -729,16 +909,35 @@ export class MongoStorage implements IStorage {
   }
 
   // AI Insight methods
-  async getAiInsightsByUserId(userId: number): Promise<AiInsight[]> {
+  async getAiInsightsByUserId(userId: string | number): Promise<AiInsight[]> {
     try {
-      if (!isConnected()) return memStorage.getAiInsightsByUserId(userId);
+      if (!isConnected()) {
+        // Convert string ID to number for in-memory storage
+        const numericId = typeof userId === 'string' ? parseInt(userId, 16) : userId;
+        return memStorage.getAiInsightsByUserId(numericId);
+      }
       
       logMongoDBAccess(userId, 'view', 'AIInsight', 'multiple');
-      const insights = await models.AIInsight.find({ userId });
       
-      return insights.map(insight => ({
-        id: insight._id as unknown as number,
-        userId: insight.userId as unknown as number,
+      // Convert string ID to MongoDB ObjectId
+      let objectId;
+      try {
+        if (typeof userId === 'string') {
+          objectId = new mongoose.Types.ObjectId(userId);
+        } else {
+          const hexId = userId.toString(16).padStart(24, '0');
+          objectId = new mongoose.Types.ObjectId(hexId);
+        }
+      } catch (error) {
+        console.error('Error creating ObjectId for AI insights:', error);
+        return []; // Return empty array if we can't create a valid ObjectId
+      }
+      
+      const insights = await models.AIInsight.find({ userId: objectId });
+      
+      return insights.map((insight: any) => ({
+        id: parseInt(insight._id.toString(), 16),
+        userId: parseInt(insight.userId.toString(), 16),
         title: insight.title,
         description: insight.description,
         category: insight.category,
@@ -748,7 +947,8 @@ export class MongoStorage implements IStorage {
       }));
     } catch (error) {
       console.error('Error getting AI insights from MongoDB:', error);
-      return memStorage.getAiInsightsByUserId(userId);
+      // Return empty array instead of recursing
+      return [];
     }
   }
 
@@ -963,9 +1163,282 @@ export class MongoStorage implements IStorage {
 
   // Demo data generation (reuses in-memory implementation for simplicity)
   async generateDemoData(userId: number): Promise<void> {
-    return memStorage.generateDemoData(userId);
+    try {
+      if (!isConnected()) {
+        // Use the in-memory storage's implementation directly
+        await memStorage.generateDemoData(userId);
+        return;
+      }
+
+      // Convert numeric ID to a valid MongoDB ObjectId
+      let objectId;
+      try {
+        const hexId = userId.toString(16).padStart(24, '0');
+        objectId = new mongoose.Types.ObjectId(hexId);
+      } catch (error) {
+        console.error('Error creating ObjectId for demo data:', error);
+        return;
+      }
+
+      // Generate demo health data
+      const healthData = {
+        userId: objectId,
+        date: new Date(),
+        steps: Math.floor(Math.random() * 10000),
+        activeMinutes: Math.floor(Math.random() * 120),
+        calories: Math.floor(Math.random() * 2000),
+        sleepHours: Math.floor(Math.random() * 8) + 4,
+        sleepQuality: Math.floor(Math.random() * 5) + 1,
+        heartRate: Math.floor(Math.random() * 40) + 60,
+        healthScore: Math.floor(Math.random() * 40) + 60,
+        stressLevel: Math.floor(Math.random() * 5) + 1,
+        healthMetrics: {}
+      };
+
+      // Generate demo reminders
+      const reminders = [
+        {
+          userId: objectId,
+          title: 'Morning Exercise',
+          description: '30 minutes of cardio',
+          category: 'Exercise',
+          time: new Date(),
+          frequency: 'Daily',
+          isCompleted: false,
+          color: '#4CAF50'
+        },
+        {
+          userId: objectId,
+          title: 'Take Medication',
+          description: 'Blood pressure medication',
+          category: 'Health',
+          time: new Date(),
+          frequency: 'Daily',
+          isCompleted: false,
+          color: '#2196F3'
+        }
+      ];
+
+      // Generate demo goals
+      const goals = [
+        {
+          userId: objectId,
+          title: 'Daily Steps',
+          category: 'Exercise',
+          target: 10000,
+          current: 0,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          unit: 'steps'
+        },
+        {
+          userId: objectId,
+          title: 'Water Intake',
+          category: 'Health',
+          target: 8,
+          current: 0,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          unit: 'glasses'
+        }
+      ];
+
+      // Save all demo data
+      await Promise.all([
+        models.HealthData.create(healthData),
+        models.Reminder.insertMany(reminders),
+        models.Goal.insertMany(goals)
+      ]);
+
+    } catch (error) {
+      console.error('Error generating demo data:', error);
+      // Don't recursively call this method again
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      if (!isConnected()) return memStorage.getUserByEmail(email);
+      
+      logMongoDBAccess(0, 'view', 'User', email);
+      const user = await models.User.findOne({ email });
+      if (!user) return undefined;
+      
+      return {
+        id: user._id as unknown as number,
+        username: user.username,
+        password: user.password,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImage: user.profileImage || null,
+        role: user.role || null,
+        oauthProvider: user.oauthProvider || null,
+        oauthId: user.oauthId || null,
+        lastLogin: user.lastLogin || null,
+        createdAt: user.createdAt
+      };
+    } catch (error) {
+      console.error('Error getting user by email from MongoDB:', error);
+      return memStorage.getUserByEmail(email);
+    }
+  }
+
+  async getUserByOAuthId(oauthId: string, provider: string): Promise<User | undefined> {
+    try {
+      if (!isConnected()) return memStorage.getUserByOAuthId(oauthId, provider);
+      
+      logMongoDBAccess(0, 'view', 'User', oauthId);
+      const user = await models.User.findOne({ oauthId, oauthProvider: provider });
+      if (!user) return undefined;
+      
+      return {
+        id: user._id as unknown as number,
+        username: user.username,
+        password: user.password,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImage: user.profileImage || null,
+        role: user.role || null,
+        oauthProvider: user.oauthProvider || null,
+        oauthId: user.oauthId || null,
+        lastLogin: user.lastLogin || null,
+        createdAt: user.createdAt
+      };
+    } catch (error) {
+      console.error('Error getting user by OAuth ID from MongoDB:', error);
+      return memStorage.getUserByOAuthId(oauthId, provider);
+    }
+  }
+
+  async updateUserLastLogin(userId: number): Promise<User | undefined> {
+    try {
+      if (!isConnected()) return memStorage.updateUserLastLogin(userId);
+      
+      logMongoDBAccess(userId, 'update', 'User', 'lastLogin');
+      const user = await models.User.findByIdAndUpdate(
+        userId,
+        { lastLogin: new Date() },
+        { new: true }
+      );
+      
+      if (!user) return undefined;
+      
+      return {
+        id: user._id as unknown as number,
+        username: user.username,
+        password: user.password,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImage: user.profileImage || null,
+        role: user.role || null,
+        oauthProvider: user.oauthProvider || null,
+        oauthId: user.oauthId || null,
+        lastLogin: user.lastLogin || null,
+        createdAt: user.createdAt
+      };
+    } catch (error) {
+      console.error('Error updating user last login in MongoDB:', error);
+      return memStorage.updateUserLastLogin(userId);
+    }
+  }
+
+  async deleteHealthData(id: number): Promise<boolean> {
+    try {
+      if (!isConnected()) return memStorage.deleteHealthData(id);
+      
+      logMongoDBAccess(0, 'delete', 'HealthData', id.toString());
+      const result = await models.HealthData.findByIdAndDelete(id);
+      return !!result;
+    } catch (error) {
+      console.error('Error deleting health data from MongoDB:', error);
+      return memStorage.deleteHealthData(id);
+    }
+  }
+
+  // Add missing methods to satisfy IStorage interface
+  async updateWearableDeviceLastSynced(id: number, userId: number): Promise<WearableDevice | undefined> {
+    try {
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return memStorage.updateWearableDeviceLastSynced(id, userId);
+      }
+      
+      logMongoDBAccess(userId, 'update', 'WearableDevice', id.toString());
+      const device = await models.WearableDevice.findOneAndUpdate(
+        { _id: id, userId },
+        { lastSynced: new Date() },
+        { new: true }
+      );
+      if (!device) return undefined;
+      
+      return {
+        id: device._id as unknown as number,
+        userId: device.userId as unknown as number,
+        deviceName: device.deviceName,
+        deviceType: device.deviceType,
+        deviceModel: device.deviceModel || null,
+        manufacturer: device.manufacturer || null,
+        serialNumber: device.serialNumber || null,
+        firmwareVersion: device.firmwareVersion || null,
+        isConnected: device.isConnected,
+        lastSynced: device.lastSynced,
+        batteryLevel: device.batteryLevel || null,
+        capabilities: device.capabilities || [],
+        connectionSettings: device.connectionSettings || {}
+      };
+    } catch (error) {
+      console.error('Error updating wearable device last synced in MongoDB:', error);
+      return memStorage.updateWearableDeviceLastSynced(id, userId);
+    }
+  }
+
+  async getDevicesByCapability(capability: string): Promise<WearableDevice[]> {
+    try {
+      if (!isConnected()) return memStorage.getDevicesByCapability(capability);
+      
+      logMongoDBAccess(0, 'view', 'WearableDevice', 'by-capability');
+      const devices = await models.WearableDevice.find({ capabilities: capability });
+      
+      return devices.map(device => ({
+        id: device._id as unknown as number,
+        userId: device.userId as unknown as number,
+        deviceName: device.deviceName,
+        deviceType: device.deviceType,
+        deviceModel: device.deviceModel || null,
+        manufacturer: device.manufacturer || null,
+        serialNumber: device.serialNumber || null,
+        firmwareVersion: device.firmwareVersion || null,
+        isConnected: device.isConnected,
+        lastSynced: device.lastSynced,
+        batteryLevel: device.batteryLevel || null,
+        capabilities: device.capabilities || [],
+        connectionSettings: device.connectionSettings || {}
+      }));
+    } catch (error) {
+      console.error('Error getting devices by capability from MongoDB:', error);
+      return memStorage.getDevicesByCapability(capability);
+    }
+  }
+
+  async clearTestData(): Promise<void> {
+    try {
+      if (!isConnected()) return;
+      
+      // Delete all test users (users with email containing 'test' or username starting with 'test')
+      await models.User.deleteMany({
+        $or: [
+          { email: { $regex: 'test', $options: 'i' } },
+          { username: { $regex: '^test', $options: 'i' } }
+        ]
+      });
+    } catch (error) {
+      console.error('Error clearing test data from MongoDB:', error);
+    }
   }
 }
 
-// Export an instance of MongoStorage
+// Export a singleton instance
 export const mongoStorage = new MongoStorage();
