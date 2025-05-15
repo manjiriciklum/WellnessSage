@@ -658,8 +658,8 @@ export class MongoStorage implements IStorage {
       const reminders = await models.Reminder.find({ userId: objectId });
       
       return reminders.map(reminder => ({
-        id: reminder._id as unknown as number,
-        userId: reminder.userId as unknown as number,
+        id: reminder._id.toString(),
+        userId: reminder.userId.toString(),
         title: reminder.title,
         description: reminder.description,
         category: reminder.category,
@@ -743,21 +743,22 @@ export class MongoStorage implements IStorage {
     }
   }
 
-  async completeReminder(id: number): Promise<Reminder | undefined> {
+  async completeReminder(id: string | mongoose.Types.ObjectId): Promise<Reminder | undefined> {
     try {
-      if (!isConnected()) return memStorage.completeReminder(id);
+      if (!isConnected()) return undefined;
       
-      logMongoDBAccess(0, 'update', 'Reminder', id.toString());
+      const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
       const reminder = await models.Reminder.findByIdAndUpdate(
-        id,
+        objectId,
         { isCompleted: true },
         { new: true }
       );
+      
       if (!reminder) return undefined;
       
       return {
-        id: reminder._id as unknown as number,
-        userId: reminder.userId as unknown as number,
+        id: reminder._id.toString(),
+        userId: reminder.userId.toString(),
         title: reminder.title,
         description: reminder.description,
         category: reminder.category,
@@ -768,42 +769,42 @@ export class MongoStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error completing reminder in MongoDB:', error);
-      return memStorage.completeReminder(id);
+      return undefined;
     }
   }
 
   // Goal methods
-  async getGoalsByUserId(userId: number): Promise<Goal[]> {
+  async getGoalsByUserId(userId: string | number): Promise<Goal[]> {
     try {
       if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
         return memStorage.getGoalsByUserId(userId);
       }
       
-      logMongoDBAccess(userId, 'view', 'Goal', 'multiple');
+      console.log('Fetching goals for user:', userId);
       
-      // Convert numeric ID to a valid MongoDB ObjectId
-      let objectId;
-      try {
-        const hexId = userId.toString(16).padStart(24, '0');
-        objectId = new mongoose.Types.ObjectId(hexId);
-      } catch (error) {
-        console.error('Error creating ObjectId for goals:', error);
-        return []; // Return empty array if we can't create a valid ObjectId
-      }
+      // Query goals directly with the string userId
+      console.log('Querying MongoDB for goals with userId:', userId);
+      const goals = await models.Goal.find({ userId: userId.toString() }).sort({ createdAt: -1 });
+      console.log('Found goals:', goals);
       
-      const goals = await models.Goal.find({ userId: objectId });
-      
-      return goals.map(goal => ({
-        id: goal._id as unknown as number,
-        userId: goal.userId as unknown as number,
+      // Transform the goals to match the expected format
+      const transformedGoals = goals.map(goal => ({
+        id: goal._id.toString(),
+        userId: goal.userId.toString(),
         title: goal.title,
         category: goal.category,
         target: goal.target,
-        current: goal.current,
+        current: goal.current || 0,
         startDate: goal.startDate,
         endDate: goal.endDate,
-        unit: goal.unit
+        unit: goal.unit || '',
+        createdAt: goal.createdAt,
+        updatedAt: goal.updatedAt
       }));
+      console.log('Transformed goals:', transformedGoals);
+      
+      return transformedGoals;
     } catch (error) {
       console.error('Error getting goals from MongoDB:', error);
       return []; // Return empty array instead of recursing
@@ -851,10 +852,11 @@ export class MongoStorage implements IStorage {
         target: data.target,
         current: data.current || 0,
         unit: data.unit || '',
-        startDate: data.startDate || new Date(),
-        endDate: data.endDate || null,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
         category: data.category,
-        createdAt: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
 
       // Save the goal
@@ -1219,35 +1221,10 @@ export class MongoStorage implements IStorage {
         }
       ];
 
-      // Generate demo goals
-      const goals = [
-        {
-          userId: objectId,
-          title: 'Daily Steps',
-          category: 'Exercise',
-          target: 10000,
-          current: 0,
-          startDate: new Date(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          unit: 'steps'
-        },
-        {
-          userId: objectId,
-          title: 'Water Intake',
-          category: 'Health',
-          target: 8,
-          current: 0,
-          startDate: new Date(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          unit: 'glasses'
-        }
-      ];
-
-      // Save all demo data
+      // Save demo data (excluding goals)
       await Promise.all([
         models.HealthData.create(healthData),
-        models.Reminder.insertMany(reminders),
-        models.Goal.insertMany(goals)
+        models.Reminder.insertMany(reminders)
       ]);
 
     } catch (error) {
@@ -1436,6 +1413,59 @@ export class MongoStorage implements IStorage {
       });
     } catch (error) {
       console.error('Error clearing test data from MongoDB:', error);
+    }
+  }
+
+  async getReminderById(id: string | mongoose.Types.ObjectId): Promise<Reminder | null> {
+    try {
+      if (!isConnected()) return null;
+      
+      const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+      const reminder = await models.Reminder.findOne({ _id: objectId });
+      
+      if (!reminder) return null;
+      
+      return {
+        id: reminder._id.toString(),
+        userId: reminder.userId.toString(),
+        title: reminder.title,
+        description: reminder.description,
+        category: reminder.category,
+        time: reminder.time,
+        frequency: reminder.frequency,
+        isCompleted: reminder.isCompleted,
+        color: reminder.color
+      };
+    } catch (error) {
+      console.error('Error getting reminder by ID:', error);
+      return null;
+    }
+  }
+
+  async updateReminder(id: number, update: Partial<Reminder>): Promise<Reminder | null> {
+    try {
+      const reminder = await models.Reminder.findOneAndUpdate(
+        { id },
+        { $set: update },
+        { new: true }
+      );
+      return reminder ? reminder.toObject() : null;
+    } catch (error) {
+      console.error('Error updating reminder:', error);
+      return null;
+    }
+  }
+
+  async deleteReminder(id: string | mongoose.Types.ObjectId): Promise<boolean> {
+    try {
+      if (!isConnected()) return false;
+      
+      const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+      const result = await models.Reminder.deleteOne({ _id: objectId });
+      return result.deletedCount > 0;
+    } catch (error) {
+      console.error('Error deleting reminder:', error);
+      return false;
     }
   }
 }

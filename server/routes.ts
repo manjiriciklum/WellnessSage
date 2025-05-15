@@ -19,6 +19,7 @@ import {
   insertHealthConsultationSchema
 } from "@shared/schema";
 import passport from 'passport';
+import mongoose from 'mongoose';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -395,20 +396,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/reminders/:id/complete", async (req, res) => {
-    const reminderId = parseInt(req.params.id);
-    const reminderStorage = isConnected() ? mongoStorage : storage;
-    const reminder = await reminderStorage.completeReminder(reminderId);
-    if (!reminder) {
-      return res.status(404).json({ message: "Reminder not found" });
+  // Complete a reminder
+  app.put('/api/reminders/:id/complete', async (req, res) => {
+    try {
+      const reminderId = req.params.id;
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+
+      // Convert string ID to MongoDB ObjectId
+      let objectId;
+      try {
+        objectId = new mongoose.Types.ObjectId(reminderId);
+      } catch (error) {
+        return res.status(400).json({ error: 'Invalid reminder ID format' });
+      }
+
+      // Get the reminder and verify ownership
+      const reminder = await storage.getReminderById(objectId);
+      if (!reminder) {
+        return res.status(404).json({ error: 'Reminder not found' });
+      }
+
+      // Verify the reminder belongs to the user
+      if (reminder.userId.toString() !== userId.toString()) {
+        return res.status(403).json({ error: 'Not authorized to complete this reminder' });
+      }
+
+      // Update the reminder
+      const updatedReminder = await storage.completeReminder(objectId);
+      if (!updatedReminder) {
+        return res.status(500).json({ error: 'Failed to complete reminder' });
+      }
+
+      res.json({ message: 'Reminder completed successfully', reminder: updatedReminder });
+    } catch (error) {
+      console.error('Error completing reminder:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-    return res.json(reminder);
+  });
+
+  // Delete a reminder
+  app.delete('/api/reminders/:id', async (req, res) => {
+    try {
+      const reminderId = req.params.id;
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+
+      const reminder = await storage.getReminderById(reminderId);
+      
+      if (!reminder) {
+        return res.status(404).json({ error: 'Reminder not found' });
+      }
+
+      // Verify that the reminder belongs to the user
+      if (reminder.userId.toString() !== userId.toString()) {
+        return res.status(403).json({ error: 'Not authorized to delete this reminder' });
+      }
+      
+      // Delete the reminder
+      const success = await storage.deleteReminder(reminderId);
+      
+      if (!success) {
+        return res.status(500).json({ error: 'Failed to delete reminder' });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting reminder:', error);
+      res.status(500).json({ error: 'Failed to delete reminder' });
+    }
   });
 
   // Goals routes
   app.get("/api/users/:userId/goals", async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const goals = await storage.getGoalsByUserId(userId);
+    const userId = req.params.userId;
+    const goalStorage = isConnected() ? mongoStorage : storage;
+    const goals = await goalStorage.getGoalsByUserId(userId);
     return res.json(goals);
   });
 

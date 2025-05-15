@@ -19,6 +19,9 @@ export function RemindersAndGoals() {
   const { data: reminders, isLoading: remindersLoading } = useQuery<Reminder[]>({
     queryKey: [`/api/users/${userId}/reminders`],
     enabled: !!userId,
+    onError: (error) => {
+      console.error('Error fetching reminders:', error);
+    }
   });
 
   const { data: goals, isLoading: goalsLoading } = useQuery<Goal[]>({
@@ -65,9 +68,13 @@ export function RemindersAndGoals() {
                   </div>
                 ))}
               </div>
+            ) : !reminders || reminders.length === 0 ? (
+              <div className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
+                No reminders set for today
+              </div>
             ) : (
               <>
-                {reminders?.map((reminder) => (
+                {reminders.map((reminder) => (
                   <div key={reminder.id} className="flex items-center justify-between py-3 border-b border-neutral-100 dark:border-neutral-600 last:border-0">
                     <div className="flex items-center">
                       <div className={`w-2 h-2 rounded-full bg-${reminder.color} mr-3`}></div>
@@ -123,46 +130,6 @@ export function RemindersAndGoals() {
                     />
                   </div>
                 ))}
-                
-                {/* Dummy goals for demonstration */}
-                <div className="mb-4 last:mb-0">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-neutral-700 dark:text-neutral-200">Daily Walk</span>
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                      7000/10000
-                    </span>
-                  </div>
-                  <SimpleProgress 
-                    value={7000} 
-                    maxValue={10000}
-                  />
-                </div>
-                
-                <div className="mb-4 last:mb-0">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-neutral-700 dark:text-neutral-200">Meditation</span>
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                      3/5
-                    </span>
-                  </div>
-                  <SimpleProgress 
-                    value={3} 
-                    maxValue={5}
-                  />
-                </div>
-                
-                <div className="mb-4 last:mb-0">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-neutral-700 dark:text-neutral-200">Sleep Duration</span>
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                      6/8
-                    </span>
-                  </div>
-                  <SimpleProgress 
-                    value={6} 
-                    maxValue={8}
-                  />
-                </div>
               </>
             )}
           </CardContent>

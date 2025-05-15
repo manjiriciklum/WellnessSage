@@ -229,17 +229,26 @@ export const goals = pgTable("goals", {
   startDate: timestamp("start_date").defaultNow(),
   endDate: timestamp("end_date"),
   category: text("category").notNull(), // exercise, sleep, meditation, etc.
-});
+}); 
 
-export const insertGoalSchema = createInsertSchema(goals).pick({
-  userId: true,
-  title: true,
-  target: true,
-  current: true,
-  unit: true,
-  startDate: true,
-  endDate: true,
-  category: true
+export const insertGoalSchema = z.object({
+  userId: z.string(),
+  title: z.string(),
+  target: z.number(),
+  current: z.number().optional().default(0),
+  unit: z.string(),
+  category: z.string(),
+  startDate: z.union([z.string(), z.date()]).transform((val) => {
+    if (val instanceof Date) return val;
+    return new Date(val);
+  }),
+  endDate: z.union([z.string(), z.date()]).nullable().transform((val) => {
+    if (!val) return null;
+    if (val instanceof Date) return val;
+    return new Date(val);
+  }),
+  createdAt: z.date().optional().default(() => new Date()),
+  updatedAt: z.date().optional().default(() => new Date()),
 });
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;

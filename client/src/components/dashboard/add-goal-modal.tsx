@@ -81,7 +81,7 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
       unit: '',
       category: 'exercise',
       startDate: new Date(),
-      endDate: null,
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
     },
   });
   
@@ -95,10 +95,10 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: FormValues) => {
-      // Format dates as ISO strings
+      // Format the data with dates as ISO strings
       const formattedData = {
         ...data,
-        startDate: data.startDate?.toISOString(),
+        startDate: data.startDate.toISOString(),
         endDate: data.endDate?.toISOString() || null,
       };
       

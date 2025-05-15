@@ -56,6 +56,7 @@ const formSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional().nullable(),
   time: z.string().min(1, 'Time is required'),
+  period: z.string().min(1, 'Period is required'),
   frequency: z.string().optional().nullable(),
   category: z.string().min(1, 'Category is required'),
   color: z.string().optional().nullable(),
@@ -78,7 +79,8 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
       title: '',
       description: '',
       time: '',
-      frequency: '',
+      period: 'AM',
+      frequency: 'Daily',
       category: 'medication',
       color: reminderCategories[0].color,
     },
@@ -159,10 +161,14 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
       return;
     }
 
-    mutate({
+    // Combine time and period into a single time string
+    const formattedData = {
       ...data,
-      userId: userId
-    });
+      userId: userId,
+      time: `${data.time} ${data.period}`,
+    };
+
+    mutate(formattedData);
   };
 
   const handleCategoryChange = (value: string) => {
@@ -228,23 +234,71 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Time</FormLabel>
-                    <FormControl>
-                      <Input placeholder="8:00 AM" {...field} />
-                    </FormControl>
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={12}
+                          className="w-14"
+                          placeholder="Hour"
+                          {...field}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            if (value >= 1 && value <= 12) {
+                              field.onChange(value.toString());
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormField
+                        control={form.control}
+                        name="period"
+                        render={({ field: periodField }) => (
+                          <Select
+                            onValueChange={periodField.onChange}
+                            defaultValue={periodField.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-16">
+                                <SelectValue placeholder="AM/PM" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="frequency"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Frequency (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Daily" {...field} value={field.value || ''} />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue="Daily"
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Hourly">Hourly</SelectItem>
+                        <SelectItem value="Daily">Daily</SelectItem>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                        <SelectItem value="Monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -3,21 +3,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus, Bell, Check, X, AlertTriangle, Info } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { type Reminder } from '@shared/schema';
 import { useNotification } from '@/contexts/NotificationContext';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function AlertsRemindersPage() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [reminderTitle, setReminderTitle] = useState('');
   const [reminderTime, setReminderTime] = useState('');
   const [reminderFrequency, setReminderFrequency] = useState('Daily');
   const [reminderCategory, setReminderCategory] = useState('Medication');
   const { addNotification } = useNotification();
+  const queryClient = useQueryClient();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [reminderToDelete, setReminderToDelete] = useState<string | null>(null);
   
   const { data: reminders, isLoading } = useQuery<Reminder[]>({
-    queryKey: ['/api/users/1/reminders'],
+    queryKey: [`/api/users/${userId}/reminders`],
+    enabled: !!userId,
   });
   
   // Add a mutation to create a new reminder
@@ -30,7 +45,41 @@ export default function AlertsRemindersPage() {
       setReminderTitle('');
       setReminderTime('');
       // Invalidate the reminders query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/users/1/reminders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/reminders`] });
+    },
+  });
+  
+  // Add mutation to complete a reminder
+  const completeReminderMutation = useMutation({
+    mutationFn: async (reminderId: string) => {
+      return apiRequest('PUT', `/api/reminders/${reminderId}/complete`, {
+        userId: userId
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/reminders`] });
+      addNotification({
+        title: 'Success',
+        message: 'Reminder marked as complete',
+        type: 'success'
+      });
+    },
+  });
+
+  // Add mutation to delete a reminder
+  const deleteReminderMutation = useMutation({
+    mutationFn: async (reminderId: string) => {
+      return apiRequest('DELETE', `/api/reminders/${reminderId}`, {
+        userId: userId
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/reminders`] });
+      addNotification({
+        title: 'Success',
+        message: 'Reminder deleted successfully',
+        type: 'success'
+      });
     },
   });
   
@@ -38,9 +87,18 @@ export default function AlertsRemindersPage() {
   const handleSubmitReminder = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!userId) {
+      addNotification({
+        title: 'Error',
+        message: 'Please log in to create reminders',
+        type: 'alert'
+      });
+      return;
+    }
+    
     // Create the reminder
     createReminderMutation.mutate({
-      userId: 1, // Using a fixed user ID for the demo
+      userId: userId,
       title: reminderTitle,
       time: reminderTime,
       frequency: reminderFrequency.toLowerCase(),
@@ -85,6 +143,25 @@ export default function AlertsRemindersPage() {
     });
   };
 
+  // Function to handle completing a reminder
+  const handleCompleteReminder = (reminderId: string) => {
+    completeReminderMutation.mutate(reminderId);
+  };
+
+  // Function to handle deleting a reminder
+  const handleDeleteReminder = (reminderId: string) => {
+    setReminderToDelete(reminderId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (reminderToDelete) {
+      deleteReminderMutation.mutate(reminderToDelete);
+      setDeleteDialogOpen(false);
+      setReminderToDelete(null);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
@@ -114,22 +191,39 @@ export default function AlertsRemindersPage() {
                       <div key={i} className="animate-pulse h-12 bg-neutral-100 dark:bg-neutral-700 rounded-md"></div>
                     ))}
                   </div>
+                ) : !reminders || reminders.length === 0 ? (
+                  <div className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
+                    No active reminders
+                  </div>
                 ) : (
                   <div className="space-y-3">
-                    {reminders?.map((reminder) => (
+                    {reminders.map((reminder) => (
                       <div key={reminder.id} className="flex items-center justify-between p-3 border border-neutral-100 dark:border-neutral-600 rounded-md">
                         <div className="flex items-center">
-                          <div className={`w-2 h-2 rounded-full bg-${reminder.color} mr-3`}></div>
+                          <div className={`w-2 h-2 rounded-full mr-3`} style={{ backgroundColor: reminder.color || '#1e88e5' }}></div>
                           <div>
-                            <p className="text-sm font-medium">{reminder.title}</p>
+                            <p className={`text-sm font-medium ${reminder.isCompleted ? 'line-through text-neutral-400' : ''}`}>
+                              {reminder.title}
+                            </p>
                             <p className="text-xs text-neutral-500 dark:text-neutral-300">{reminder.time}</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-success">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={`h-8 w-8 ${reminder.isCompleted ? 'text-success' : 'text-neutral-400'}`}
+                            onClick={() => handleCompleteReminder(reminder.id.toString())}
+                            disabled={reminder.isCompleted}
+                          >
                             <Check size={16} />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => handleDeleteReminder(reminder.id.toString())}
+                          >
                             <X size={16} />
                           </Button>
                         </div>
@@ -294,6 +388,26 @@ export default function AlertsRemindersPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Add the confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Reminder</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this reminder? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
