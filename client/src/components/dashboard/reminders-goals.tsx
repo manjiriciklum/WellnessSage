@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SimpleProgress } from '@/components/ui/simple-progress';
 import { CheckCircle, Plus } from 'lucide-react';
 import { type Reminder, type Goal } from '@shared/schema';
@@ -9,12 +9,14 @@ import { calculateProgress } from '@/lib/utils';
 import { AddReminderModal } from './add-reminder-modal';
 import { AddGoalModal } from './add-goal-modal';
 import { useAuth } from '@/hooks/use-auth';
+import { apiRequest } from '@/lib/queryClient';
 
 export function RemindersAndGoals() {
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const { user } = useAuth();
   const userId = user?.id;
+  const queryClient = useQueryClient();
 
   const { data: reminders, isLoading: remindersLoading } = useQuery<Reminder[]>({
     queryKey: [`/api/users/${userId}/reminders`],
@@ -28,6 +30,22 @@ export function RemindersAndGoals() {
     queryKey: [`/api/users/${userId}/goals`],
     enabled: !!userId,
   });
+
+  // Add mutation to complete a reminder
+  const completeReminderMutation = useMutation({
+    mutationFn: async (reminderId: string) => {
+      return apiRequest('PUT', `/api/reminders/${reminderId}/complete`, {
+        userId: userId
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/reminders`] });
+    },
+  });
+
+  const handleCompleteReminder = (reminderId: string) => {
+    completeReminderMutation.mutate(reminderId);
+  };
 
   return (
     <div>
@@ -79,14 +97,15 @@ export function RemindersAndGoals() {
                     <div className="flex items-center">
                       <div className={`w-2 h-2 rounded-full bg-${reminder.color} mr-3`}></div>
                       <div>
-                        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-100">{reminder.title}</p>
+                        <p className={`text-sm font-medium ${reminder.isCompleted ? 'line-through text-neutral-400' : 'text-neutral-700 dark:text-neutral-100'}`}>{reminder.title}</p>
                         <p className="text-xs text-neutral-500 dark:text-neutral-300">{reminder.time}</p>
                       </div>
                     </div>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 h-6 w-6"
+                      className={`text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 h-6 w-6 ${reminder.isCompleted ? '' : 'text-success'}`}
+                      onClick={() => handleCompleteReminder(reminder.id.toString())}
                     >
                       <CheckCircle size={18} />
                     </Button>

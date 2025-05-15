@@ -240,8 +240,8 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
                           type="number"
                           min={1}
                           max={12}
-                          className="w-14"
-                          placeholder="Hour"
+                          className="w-16"
+                          placeholder="Hr"
                           {...field}
                           onChange={(e) => {
                             const value = parseInt(e.target.value);

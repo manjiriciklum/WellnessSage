@@ -212,7 +212,7 @@ export default function AlertsRemindersPage() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className={`h-8 w-8 ${reminder.isCompleted ? 'text-success' : 'text-neutral-400'}`}
+                            className={`h-8 w-8 ${reminder.isCompleted ? 'text-neutral-400' : 'text-success'}`}
                             onClick={() => handleCompleteReminder(reminder.id.toString())}
                             disabled={reminder.isCompleted}
                           >
