@@ -64,6 +64,7 @@ export interface IStorage {
   getReminder(id: number): Promise<Reminder | undefined>;
   createReminder(reminder: InsertReminder): Promise<Reminder>;
   completeReminder(id: number): Promise<Reminder | undefined>;
+  getAllReminders(): Promise<Reminder[]>;
 
   // Goal methods
   getGoalsByUserId(userId: number): Promise<Goal[]>;
@@ -614,6 +615,10 @@ export class MemStorage implements IStorage {
     };
     this.reminders.set(id, updatedReminder);
     return updatedReminder;
+  }
+
+  async getAllReminders(): Promise<Reminder[]> {
+    return Array.from(this.reminders.values());
   }
 
   // Goal methods
@@ -1570,6 +1575,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(reminders.id, id))
       .returning();
     return reminder;
+  }
+
+  async getAllReminders(): Promise<Reminder[]> {
+    return db.select().from(reminders);
   }
 
   // Goal methods

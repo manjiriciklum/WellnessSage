@@ -22,7 +22,89 @@ import passport from 'passport';
 import mongoose from 'mongoose';
 import { calculateHealthScore } from './utils/health-score';
 
+// Add reminder scheduler
+function startReminderScheduler() {
+  // Check for due reminders every minute
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const currentDate = now.getDate();
+
+      // Get all active reminders
+      const reminders = await storage.getAllReminders();
+      
+      for (const reminder of reminders) {
+        if (reminder.isCompleted) continue;
+
+        const [timeStr, reminderPeriod] = reminder.time.split(' ');
+        const [reminderHour, reminderMinute] = timeStr.split(':');
+        let reminderHourNum = parseInt(reminderHour);
+        const reminderMinuteNum = parseInt(reminderMinute);
+        
+        // Convert to 24-hour format
+        if (reminderPeriod === 'PM' && reminderHourNum < 12) {
+          reminderHourNum += 12;
+        } else if (reminderPeriod === 'AM' && reminderHourNum === 12) {
+          reminderHourNum = 0;
+        }
+
+        // Check if it's time to send the reminder
+        let shouldSend = false;
+        
+        switch (reminder.frequency.toLowerCase()) {
+          case '2min':
+            shouldSend = currentMinute % 2 === 0; // Send every 2 minutes
+            break;
+          case '5min':
+            shouldSend = currentMinute % 5 === 0; // Send every 5 minutes
+            break;
+          case '15min':
+            shouldSend = currentMinute % 15 === 0; // Send every 15 minutes
+            break;
+          case '30min':
+            shouldSend = currentMinute % 30 === 0; // Send every 30 minutes
+            break;
+          case 'hourly':
+            shouldSend = currentMinute === 0; // Send at the start of every hour
+            break;
+          case 'daily':
+            shouldSend = currentHour === reminderHourNum && currentMinute === reminderMinuteNum;
+            break;
+          case 'weekly':
+            // Send on the same day of the week at the specified time
+            shouldSend = currentDay === 1 && currentHour === reminderHourNum && currentMinute === reminderMinuteNum; // Monday
+            break;
+          case 'monthly':
+            // Send on the same date of the month at the specified time
+            shouldSend = currentDate === 1 && currentHour === reminderHourNum && currentMinute === reminderMinuteNum; // 1st of month
+            break;
+          case 'once':
+            // For one-time reminders, check if it's the exact time
+            shouldSend = currentHour === reminderHourNum && currentMinute === reminderMinuteNum;
+            break;
+        }
+
+        if (shouldSend) {
+          // Send notification to the user
+          sendNotification(reminder.userId, {
+            type: 'reminder',
+            data: reminder
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error in reminder scheduler:', error);
+    }
+  }, 60000); // Check every minute
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Start the reminder scheduler
+  startReminderScheduler();
+  
   // Set up authentication
   setupAuth(app);
   

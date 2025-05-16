@@ -1484,6 +1484,31 @@ export class MongoStorage implements IStorage {
       return false;
     }
   }
+
+  async getAllReminders(): Promise<Reminder[]> {
+    try {
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return memStorage.getAllReminders();
+      }
+      
+      const reminders = await models.Reminder.find({ isCompleted: false });
+      return reminders.map(reminder => ({
+        id: reminder._id.toString(),
+        userId: reminder.userId.toString(),
+        title: reminder.title,
+        description: reminder.description,
+        time: reminder.time,
+        frequency: reminder.frequency,
+        isCompleted: reminder.isCompleted,
+        category: reminder.category,
+        color: reminder.color
+      }));
+    } catch (error) {
+      console.error('Error getting all reminders:', error);
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance

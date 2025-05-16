@@ -111,17 +111,8 @@ export function logAuditEvent(userId: number, action: string, resourceType: stri
     userAgent: '' // Should be filled with request user agent
   };
   
-  // Ensure log directory exists
-  if (!fs.existsSync(AUDIT_LOG_DIR)) {
-    fs.mkdirSync(AUDIT_LOG_DIR, { recursive: true });
-  }
-  
-  // Write to log file
-  const logFilePath = path.join(AUDIT_LOG_DIR, `audit-${new Date().toISOString().split('T')[0]}.log`);
-  fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
-  
-  // In a production environment, you might want to send this to a secure logging service
-  console.log(`AUDIT: ${action} ${resourceType} ${resourceId} by user ${userId}`);
+  // Only log to console
+  console.log(`AUDIT: ${JSON.stringify(logEntry)}`);
 }
 
 /**
@@ -169,13 +160,8 @@ export function auditLogMiddleware(req: Request, res: Response, next: NextFuncti
     requestMethod: req.method
   };
   
-  // Log the access
-  if (!fs.existsSync(AUDIT_LOG_DIR)) {
-    fs.mkdirSync(AUDIT_LOG_DIR, { recursive: true });
-  }
-  
-  const logFilePath = path.join(AUDIT_LOG_DIR, `api-access-${new Date().toISOString().split('T')[0]}.log`);
-  fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
+  // Only log to console
+  console.log(`API ACCESS: ${JSON.stringify(logEntry)}`);
   
   next();
 }

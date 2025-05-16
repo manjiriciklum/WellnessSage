@@ -56,6 +56,7 @@ const formSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional().nullable(),
   time: z.string().min(1, 'Time is required'),
+  minutes: z.string().min(1, 'Minutes are required'),
   period: z.string().min(1, 'Period is required'),
   frequency: z.string().optional().nullable(),
   category: z.string().min(1, 'Category is required'),
@@ -78,9 +79,10 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
       userId: userId || '',
       title: '',
       description: '',
-      time: '',
+      time: '0',
+      minutes: '00',
       period: 'AM',
-      frequency: 'Daily',
+      frequency: '2min',
       category: 'medication',
       color: reminderCategories[0].color,
     },
@@ -161,11 +163,11 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
       return;
     }
 
-    // Combine time and period into a single time string
+    // Combine time, minutes and period into a single time string
     const formattedData = {
       ...data,
       userId: userId,
-      time: `${data.time} ${data.period}`,
+      time: `${data.time}:${data.minutes} ${data.period}`,
     };
 
     mutate(formattedData);
@@ -253,6 +255,28 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
                       </FormControl>
                       <FormField
                         control={form.control}
+                        name="minutes"
+                        render={({ field: minutesField }) => (
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={59}
+                              className="w-16"
+                              placeholder="Min"
+                              {...minutesField}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                if (value >= 0 && value <= 59) {
+                                  minutesField.onChange(value.toString().padStart(2, '0'));
+                                }
+                              }}
+                            />
+                          </FormControl>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name="period"
                         render={({ field: periodField }) => (
                           <Select
@@ -285,7 +309,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
                     <FormLabel>Frequency (Optional)</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue="Daily"
+                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -293,10 +317,14 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Hourly">Hourly</SelectItem>
-                        <SelectItem value="Daily">Daily</SelectItem>
-                        <SelectItem value="Weekly">Weekly</SelectItem>
-                        <SelectItem value="Monthly">Monthly</SelectItem>
+                        <SelectItem value="2min">Every 2 Minutes</SelectItem>
+                        <SelectItem value="5min">Every 5 Minutes</SelectItem>
+                        <SelectItem value="15min">Every 15 Minutes</SelectItem>
+                        <SelectItem value="30min">Every 30 Minutes</SelectItem>
+                        <SelectItem value="hourly">Hourly</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
