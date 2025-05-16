@@ -22,7 +22,8 @@ export default function AlertsRemindersPage() {
   const { user } = useAuth();
   const userId = user?.id;
   const [reminderTitle, setReminderTitle] = useState('');
-  const [reminderTime, setReminderTime] = useState('');
+  const [reminderHour, setReminderHour] = useState('');
+  const [reminderPeriod, setReminderPeriod] = useState('AM');
   const [reminderFrequency, setReminderFrequency] = useState('Daily');
   const [reminderCategory, setReminderCategory] = useState('Medication');
   const { addNotification } = useNotification();
@@ -43,10 +44,24 @@ export default function AlertsRemindersPage() {
     onSuccess: () => {
       // Clear the form
       setReminderTitle('');
-      setReminderTime('');
+      setReminderHour('');
+      setReminderPeriod('AM');
       // Invalidate the reminders query to refresh the list
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/reminders`] });
+      // Add success notification
+      addNotification({
+        title: 'Success',
+        message: 'Reminder scheduled successfully',
+        type: 'success'
+      });
     },
+    onError: (error) => {
+      addNotification({
+        title: 'Error',
+        message: 'Failed to schedule reminder. Please try again.',
+        type: 'alert'
+      });
+    }
   });
   
   // Add mutation to complete a reminder
@@ -100,7 +115,7 @@ export default function AlertsRemindersPage() {
     createReminderMutation.mutate({
       userId: userId,
       title: reminderTitle,
-      time: reminderTime,
+      time: `${reminderHour} ${reminderPeriod}`,
       frequency: reminderFrequency.toLowerCase(),
       category: reminderCategory.toLowerCase(),
       color: getCategoryColor(reminderCategory),
@@ -251,20 +266,40 @@ export default function AlertsRemindersPage() {
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1 block">Time</label>
-                    <Input 
-                      value={reminderTime}
-                      onChange={(e) => setReminderTime(e.target.value)}
-                      placeholder="E.g., 8:00 AM"
-                      required
-                    />
+                    <div className="flex items-center gap-2 ml-0">
+                      <Input 
+                        type="number"
+                        min={1}
+                        max={12}
+                        className="w-14"
+                        placeholder="Hr"
+                        value={reminderHour}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (value >= 1 && value <= 12) {
+                            setReminderHour(value.toString());
+                          }
+                        }}
+                        required
+                      />
+                      <select 
+                        value={reminderPeriod}
+                        onChange={(e) => setReminderPeriod(e.target.value)}
+                        className="w-20 h-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1 block">Frequency</label>
                     <select 
                       value={reminderFrequency}
                       onChange={(e) => setReminderFrequency(e.target.value)}
-                      className="w-full h-10 rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background"
+                      className="w-full h-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                     >
+                      <option>Hourly</option>
                       <option>Once</option>
                       <option>Daily</option>
                       <option>Weekly</option>
@@ -276,7 +311,7 @@ export default function AlertsRemindersPage() {
                     <select 
                       value={reminderCategory}
                       onChange={(e) => setReminderCategory(e.target.value)}
-                      className="w-full h-10 rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background"
+                      className="w-full h-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                     >
                       <option>Medication</option>
                       <option>Hydration</option>
@@ -413,10 +448,10 @@ export default function AlertsRemindersPage() {
 }
 
 // Input component for this page
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className="w-full h-10 rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background"
+      className={`w-full h-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 ${className || ''}`}
       {...props}
     />
   );

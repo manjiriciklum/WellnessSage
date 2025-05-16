@@ -260,7 +260,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
                             defaultValue={periodField.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="w-16">
+                              <SelectTrigger className="w-18">
                                 <SelectValue placeholder="AM/PM" />
                               </SelectTrigger>
                             </FormControl>
