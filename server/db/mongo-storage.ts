@@ -16,6 +16,7 @@ import {
 } from '@shared/schema';
 import { analyzeHealthSymptoms } from '../openai';
 import { ObjectId } from 'mongodb';
+import { calculateHealthScore } from '../utils/health-score';
 
 /**
  * MongoDB Storage implementation that follows the IStorage interface
@@ -139,21 +140,32 @@ export class MongoStorage implements IStorage {
       }
       
       const healthDataArray = await models.HealthData.find({ userId: objectId });
+
+
       
-      return healthDataArray.map(data => ({
-        id: data._id.toString(),
-        userId: data.userId.toString(),
-        date: data.date,
-        steps: data.steps,
-        activeMinutes: data.activeMinutes,
-        calories: data.calories,
-        sleepHours: data.sleepHours,
-        sleepQuality: data.sleepQuality,
-        heartRate: data.heartRate,
-        healthScore: data.healthScore,
-        stressLevel: data.stressLevel,
-        healthMetrics: data.healthMetrics || {}
-      }));
+      return healthDataArray.map(data => {
+        const healthData = {
+          id: data._id.toString(),
+          userId: data.userId.toString(),
+          date: data.date,
+          steps: data.steps,
+          activeMinutes: data.activeMinutes,
+          calories: data.calories,
+          sleepHours: data.sleepHours,
+          sleepQuality: data.sleepQuality,
+          heartRate: data.heartRate,
+          healthScore: data.healthScore,
+          stressLevel: data.stressLevel,
+          healthMetrics: data.healthMetrics || {}
+        };
+
+        // Calculate health score if it's null
+        if (healthData.healthScore === null || healthData.healthScore === undefined) {
+          healthData.healthScore = calculateHealthScore(healthData);
+        }
+
+        return healthData;
+      });
     } catch (error) {
       console.error('Error getting health data from MongoDB:', error);
       return []; // Return empty array instead of recursing
@@ -224,10 +236,14 @@ export class MongoStorage implements IStorage {
       const userId = typeof insertData.userId === 'string' 
         ? new mongoose.Types.ObjectId(insertData.userId)
         : new mongoose.Types.ObjectId(insertData.userId.toString(16).padStart(24, '0'));
+
+        // Calculate health score if it's null
+      const healthScore = insertData.healthScore ?? calculateHealthScore(insertData);
       
       const healthData = new models.HealthData({
         ...insertData,
-        userId
+        userId,
+        healthScore
       });
       await healthData.save();
       

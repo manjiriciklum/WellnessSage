@@ -19,10 +19,7 @@ export function HealthOverview() {
             <div className="flex justify-between mb-2">
               <h3 className="text-sm font-medium text-neutral-600 dark:text-neutral-200">Health Score</h3>
               <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full flex items-center">
-                <svg className="w-3 h-3 mr-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                5%
+              {healthScore}%
               </span>
             </div>
             <div className="flex items-center justify-center my-3">

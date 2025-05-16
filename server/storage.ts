@@ -17,6 +17,7 @@ import { db } from './db';
 import session from 'express-session';
 import createMemoryStore from 'memorystore';
 import connectPgSimple from 'connect-pg-simple';
+import { calculateHealthScore } from './utils/health-score';
 
 export interface IStorage {
   // Session store for authentication
@@ -345,27 +346,33 @@ export class MemStorage implements IStorage {
     // Log audit event for HIPAA compliance
     logAuditEvent(userId, 'view', 'healthData', 'multiple', `User ${userId} accessed their health data`);
     
-    // Decrypt health metrics for client-side use
+    // Decrypt health metrics for client-side use and calculate health score if needed
     return encryptedData.map(record => {
       // Check if data needs to be decrypted
+      let healthData = { ...record };
       if (record.healthMetrics && typeof record.healthMetrics === 'object' && record.healthMetrics.isEncrypted) {
         try {
           const { data, iv, authTag } = record.healthMetrics as any;
           const decryptedMetrics = decryptData(data, iv, authTag);
-          
+        
           // Return record with decrypted data
-          return {
+          healthData = {
             ...record,
             healthMetrics: JSON.parse(decryptedMetrics),
             _decrypted: true // Add flag to indicate this was decrypted
           };
         } catch (error) {
           console.error('Error decrypting health data:', error);
-          return record; // Return encrypted in case of error
+          healthData = record; // Return encrypted in case of error
         }
       }
+
+      // Calculate health score if it's null
+      if (healthData.healthScore === null || healthData.healthScore === undefined) {
+        healthData.healthScore = calculateHealthScore(healthData);
+      }
       
-      return record;
+      return healthData;
     });
   }
 
@@ -383,6 +390,10 @@ export class MemStorage implements IStorage {
 
   async createHealthData(insertData: InsertHealthData): Promise<HealthData> {
     const id = this.healthDataId++;
+
+    // Calculate health score if it's null
+    const healthScore = insertData.healthScore ?? calculateHealthScore(insertData);
+
     const healthData: HealthData = {
       id,
       userId: insertData.userId,
@@ -393,7 +404,7 @@ export class MemStorage implements IStorage {
       sleepHours: insertData.sleepHours ?? 0,
       sleepQuality: insertData.sleepQuality ?? 0,
       heartRate: insertData.heartRate ?? 0,
-      healthScore: insertData.healthScore ?? 0,
+      healthScore,
       stressLevel: insertData.stressLevel ?? 0,
       healthMetrics: insertData.healthMetrics ?? {}
     };
@@ -1304,27 +1315,33 @@ export class DatabaseStorage implements IStorage {
     // Log audit event for HIPAA compliance
     logAuditEvent(userId, 'view', 'healthData', 'multiple', `User ${userId} accessed their health data`);
     
-    // Decrypt health metrics for client-side use
+    // Decrypt health metrics for client-side use and calculate health score if needed
     return userHealthData.map(record => {
       // Check if data needs to be decrypted
+      let healthData = { ...record };
       if (record.healthMetrics && typeof record.healthMetrics === 'object' && (record.healthMetrics as any).isEncrypted) {
         try {
           const { data, iv, authTag } = record.healthMetrics as any;
           const decryptedMetrics = decryptData(data, iv, authTag);
           
           // Return record with decrypted data
-          return {
+          healthData = {
             ...record,
             healthMetrics: JSON.parse(decryptedMetrics),
             _decrypted: true // Add flag to indicate this was decrypted
           };
         } catch (error) {
           console.error('Error decrypting health data:', error);
-          return record; // Return encrypted in case of error
+          healthData = record; // Return encrypted in case of error
         }
       }
       
-      return record;
+      // Calculate health score if it's null
+      if (healthData.healthScore === null || healthData.healthScore === undefined) {
+        healthData.healthScore = calculateHealthScore(healthData);
+      }
+
+      return healthData;
     });
   }
 

@@ -20,6 +20,7 @@ import {
 } from "@shared/schema";
 import passport from 'passport';
 import mongoose from 'mongoose';
+import { calculateHealthScore } from './utils/health-score';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -127,6 +128,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = modifiedSchema.parse(req.body);
       console.log('Validated health data:', JSON.stringify(validatedData));
+
+       // Calculate health score if not provided
+       if (validatedData.healthScore === null || validatedData.healthScore === undefined) {
+        validatedData.healthScore = calculateHealthScore(validatedData);
+      }
       
       // Create a properly formatted object for storage
       const formattedData = {
