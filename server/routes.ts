@@ -228,21 +228,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/wearable-devices/:id/connect", async (req, res) => {
-    const deviceId = parseInt(req.params.id);
-    const device = await storage.connectWearableDevice(deviceId);
-    if (!device) {
-      return res.status(404).json({ message: "Device not found" });
+    try {
+      const deviceId = req.params.id;
+      let device;
+      
+      // Check if it's a MongoDB ObjectId
+      if (/^[0-9a-fA-F]{24}$/.test(deviceId)) {
+        // Use MongoDB storage for ObjectId
+        device = await mongoStorage.connectWearableDevice(deviceId);
+      } else {
+        // Use numeric ID with in-memory storage
+        const numericId = parseInt(deviceId);
+        if (isNaN(numericId)) {
+          return res.status(400).json({ message: "Invalid device ID format" });
+        }
+        device = await storage.connectWearableDevice(numericId);
+      }
+
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      return res.json(device);
+    } catch (error) {
+      console.error('Error connecting device:', error);
+      return res.status(500).json({ message: "Error connecting device" });
     }
-    return res.json(device);
   });
 
   app.put("/api/wearable-devices/:id/disconnect", async (req, res) => {
-    const deviceId = parseInt(req.params.id);
-    const device = await storage.disconnectWearableDevice(deviceId);
-    if (!device) {
-      return res.status(404).json({ message: "Device not found" });
+    try {
+      const deviceId = req.params.id;
+      let device;
+      
+      // Check if it's a MongoDB ObjectId
+      if (/^[0-9a-fA-F]{24}$/.test(deviceId)) {
+        // Use MongoDB storage for ObjectId
+        device = await mongoStorage.disconnectWearableDevice(deviceId);
+      } else {
+        // Use numeric ID with in-memory storage
+        const numericId = parseInt(deviceId);
+        if (isNaN(numericId)) {
+          return res.status(400).json({ message: "Invalid device ID format" });
+        }
+        device = await storage.disconnectWearableDevice(numericId);
+      }
+
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      return res.json(device);
+    } catch (error) {
+      console.error('Error disconnecting device:', error);
+      return res.status(500).json({ message: "Error disconnecting device" });
     }
-    return res.json(device);
   });
 
   // Import the wearable service functions

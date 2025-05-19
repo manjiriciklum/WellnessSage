@@ -12,6 +12,7 @@ import { Link } from 'wouter';
 export function FindDoctor() {
   const [specialty, setSpecialty] = useState('');
   const [location, setLocation] = useState('San Francisco, CA');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: doctors, isLoading } = useQuery<Doctor[]>({
     queryKey: ['/api/doctors'],
@@ -23,6 +24,14 @@ export function FindDoctor() {
   const handleSpecialtyClick = (specialty: string) => {
     setActiveSpecialty(specialty);
   };
+
+  // Filter doctors based on search term and active specialty
+  const filteredDoctors = doctors?.filter(doctor => {
+    const fullName = `${doctor.firstName} ${doctor.lastName}`.toLowerCase();
+    const matchesSearch = searchTerm === '' || fullName.includes(searchTerm.toLowerCase());
+    const matchesSpecialty = activeSpecialty === 'All' || doctor.specialty === activeSpecialty;
+    return matchesSearch && matchesSpecialty;
+  });
 
   return (
     <div>
@@ -39,10 +48,10 @@ export function FindDoctor() {
             <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={18} />
               <Input 
-                placeholder="Search by specialty, name..." 
+                placeholder="Search by doctor name..." 
                 className="pl-10"
-                value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="relative flex-1 min-w-[180px]">
@@ -58,7 +67,7 @@ export function FindDoctor() {
             </Button>
           </div>
           
-          <div className="flex overflow-x-auto pb-2 gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-6">
             <Button 
               variant={activeSpecialty === 'All' ? 'default' : 'outline'} 
               className="rounded-full text-xs h-8"
@@ -86,9 +95,13 @@ export function FindDoctor() {
                 </div>
               ))}
             </div>
+          ) : filteredDoctors?.length === 0 ? (
+            <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
+              No doctors found matching your search criteria.
+            </div>
           ) : (
             <>
-              {doctors?.map((doctor) => (
+              {filteredDoctors?.map((doctor) => (
                 <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
@@ -112,8 +125,7 @@ export function FindDoctor() {
                             />
                           </div>
                         </div>
-                        
-                        <div className="flex flex-wrap gap-2 mt-3 md:mt-0">
+                        <div className="flex gap-2 mt-4 md:mt-0">
                           <Button size="sm" className="text-xs md:text-sm">
                             Book Appointment
                           </Button>
