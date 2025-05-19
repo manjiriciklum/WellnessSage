@@ -7,8 +7,20 @@ import { connectToDatabase, isConnected } from "./db/mongodb";
 import { mongoStorage } from "./db/mongo-storage";
 // Set the storage implementation to use MongoDB
 import { setStorageImplementation } from './storage';
+import cors from 'cors';
 
 const app = express();
+
+// Configure CORS
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.CLIENT_URL 
+    : ['http://localhost:3000', 'http://localhost:5000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

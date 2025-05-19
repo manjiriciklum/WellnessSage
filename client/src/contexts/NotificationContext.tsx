@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import notificationService from '@/lib/notificationService';
 import Notification from '@/components/ui/Notification';
 
-type NotificationType = 'info' | 'warning' | 'success' | 'error';
+type NotificationType = 'info' | 'alert' | 'reminder' | 'success';
 
 interface NotificationItem {
   id: string | number;
@@ -33,7 +33,7 @@ const NotificationContext = createContext<NotificationContextType>({
 
 interface NotificationProviderProps {
   children: React.ReactNode;
-  userId?: number;
+  userId?: string | number;
 }
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, userId }) => {
@@ -57,56 +57,63 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     
     // Handle incoming reminders
     const handleReminders = (reminders: any[]) => {
+      console.log('Received reminders:', reminders);
       reminders.forEach(reminder => {
+        console.log('Processing reminder:', reminder);
         addNotification({
           title: reminder.title,
           message: `${reminder.category} reminder: ${reminder.time}`,
-          type: 'info'
+          type: 'reminder',
+          autoClose: false // Keep reminder notifications open until user dismisses
         });
       });
     };
     
     // Handle incoming insights (alerts)
     const handleInsights = (insights: any[]) => {
+      console.log('Received insights:', insights);
       insights.forEach(insight => {
+        console.log('Processing insight:', insight);
         addNotification({
           title: insight.title,
           message: insight.description,
-          type: 'warning'
+          type: 'alert'
         });
       });
     };
     
     // Handle new single reminder
     const handleNewReminder = (reminder: any) => {
+      console.log('Received new reminder:', reminder);
       addNotification({
         title: 'New Reminder',
         message: reminder.title,
-        type: 'info'
+        type: 'reminder',
+        autoClose: false // Keep reminder notifications open until user dismisses
       });
     };
     
     // Handle new single insight
     const handleNewInsight = (insight: any) => {
+      console.log('Received new insight:', insight);
       addNotification({
         title: 'New Health Insight',
         message: insight.title,
-        type: 'warning'
+        type: 'alert'
       });
     };
     
-    // Register handlers
+    // Register notification handlers
     notificationService.addListener('reminders', handleReminders);
-    notificationService.addListener('insights', handleInsights);
     notificationService.addListener('new_reminder', handleNewReminder);
     notificationService.addListener('new_insight', handleNewInsight);
+    notificationService.addListener('insights', handleInsights);
     
-    // Cleanup on unmount
     return () => {
       notificationService.removeListener('reminders', handleReminders);
-      notificationService.removeListener('insights', handleInsights);
       notificationService.removeListener('new_reminder', handleNewReminder);
       notificationService.removeListener('new_insight', handleNewInsight);
+      notificationService.removeListener('insights', handleInsights);
     };
   }, [userId]);
   
@@ -115,10 +122,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const timestamp = new Date();
     
-    setNotifications(prev => [
-      ...prev,
-      { ...notification, id, timestamp, read: false }
-    ]);
+    console.log('Adding new notification:', { ...notification, id, timestamp });
+    
+    setNotifications(prev => {
+      const newNotifications = [...prev, { ...notification, id, timestamp, read: false }];
+      console.log('Updated notifications:', newNotifications);
+      return newNotifications;
+    });
   };
   
   const removeNotification = (id: string | number) => {

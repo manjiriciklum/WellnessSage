@@ -49,7 +49,7 @@ async function initializeDatabase() {
 
     const sampleDoctors = [
       {
-        firstName: 'John',
+        firstName: 'John123',
         lastName: 'Doe',
         specialty: 'General Medicine',
         practice: 'City Hospital',

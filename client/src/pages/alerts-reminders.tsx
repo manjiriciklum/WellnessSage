@@ -22,10 +22,11 @@ export default function AlertsRemindersPage() {
   const { user } = useAuth();
   const userId = user?.id;
   const [reminderTitle, setReminderTitle] = useState('');
-  const [reminderHour, setReminderHour] = useState('');
+  const [reminderHour, setReminderHour] = useState('0');
+  const [reminderMinutes, setReminderMinutes] = useState('00');
   const [reminderPeriod, setReminderPeriod] = useState('AM');
-  const [reminderFrequency, setReminderFrequency] = useState('Daily');
-  const [reminderCategory, setReminderCategory] = useState('Medication');
+  const [reminderFrequency, setReminderFrequency] = useState('2min');
+  const [reminderCategory, setReminderCategory] = useState('medication');
   const { addNotification } = useNotification();
   const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -44,7 +45,8 @@ export default function AlertsRemindersPage() {
     onSuccess: () => {
       // Clear the form
       setReminderTitle('');
-      setReminderHour('');
+      setReminderHour('0');
+      setReminderMinutes('00');
       setReminderPeriod('AM');
       // Invalidate the reminders query to refresh the list
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/reminders`] });
@@ -115,7 +117,7 @@ export default function AlertsRemindersPage() {
     createReminderMutation.mutate({
       userId: userId,
       title: reminderTitle,
-      time: `${reminderHour} ${reminderPeriod}`,
+      time: `${reminderHour}:${reminderMinutes} ${reminderPeriod}`,
       frequency: reminderFrequency.toLowerCase(),
       category: reminderCategory.toLowerCase(),
       color: getCategoryColor(reminderCategory),
@@ -282,7 +284,22 @@ export default function AlertsRemindersPage() {
                         }}
                         required
                       />
-                      <select 
+                      <Input 
+                        type="number"
+                        min={0}
+                        max={59}
+                        className="w-14"
+                        placeholder="Min"
+                        value={reminderMinutes}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (value >= 0 && value <= 59) {
+                            setReminderMinutes(value.toString().padStart(2, '0'));
+                          }
+                        }}
+                        required
+                      />
+                      <select
                         value={reminderPeriod}
                         onChange={(e) => setReminderPeriod(e.target.value)}
                         className="w-20 h-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
@@ -299,11 +316,14 @@ export default function AlertsRemindersPage() {
                       onChange={(e) => setReminderFrequency(e.target.value)}
                       className="w-full h-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                     >
-                      <option>Hourly</option>
-                      <option>Once</option>
-                      <option>Daily</option>
-                      <option>Weekly</option>
-                      <option>Monthly</option>
+                      <option value="2min">Every 2 Minutes</option>
+                      <option value="5min">Every 5 Minutes</option>
+                      <option value="15min">Every 15 Minutes</option>
+                      <option value="30min">Every 30 Minutes</option>
+                      <option value="hourly">Hourly</option>
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
                     </select>
                   </div>
                   <div>

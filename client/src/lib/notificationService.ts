@@ -7,7 +7,7 @@
 
 class NotificationService {
   private socket: WebSocket | null = null;
-  private userId: number | null = null;
+  private userId: string | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000; // 3 seconds
@@ -17,13 +17,13 @@ class NotificationService {
    * Initialize WebSocket connection for the current user
    * @param userId User ID to register for notifications
    */
-  connect(userId: number) {
+  connect(userId: string | number) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected');
       return;
     }
     
-    this.userId = userId;
+    this.userId = userId.toString();
     this.reconnectAttempts = 0;
     this.initializeWebSocket();
   }
@@ -74,8 +74,8 @@ class NotificationService {
     try {
       // Determine the correct WebSocket protocol (ws or wss) based on the current page protocol
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      // Create WebSocket URL with the proper path
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // Create WebSocket URL with the proper path and port
+      const wsUrl = `${protocol}//${window.location.hostname}:5000/ws`;
       
       console.log(`Connecting to WebSocket at ${wsUrl}`);
       this.socket = new WebSocket(wsUrl);
@@ -100,6 +100,7 @@ class NotificationService {
     
     // Register this connection with the user's ID
     if (this.userId && this.socket) {
+      console.log('Registering WebSocket client for user ID:', this.userId);
       this.socket.send(JSON.stringify({
         type: 'register',
         userId: this.userId
@@ -114,20 +115,24 @@ class NotificationService {
   private handleMessage(event: MessageEvent) {
     try {
       const message = JSON.parse(event.data);
-      console.log('Received notification:', message);
+      console.log('Received WebSocket message:', message);
       
       // Call appropriate listeners based on message type
       if (message.type && this.listeners.has(message.type)) {
+        console.log('Found listeners for message type:', message.type);
         const callbacks = this.listeners.get(message.type);
         if (callbacks) {
           callbacks.forEach(callback => {
             try {
+              console.log('Calling listener for message type:', message.type);
               callback(message.data);
             } catch (error) {
               console.error('Error in notification listener:', error);
             }
           });
         }
+      } else {
+        console.log('No listeners found for message type:', message.type);
       }
     } catch (error) {
       console.error('Error parsing WebSocket message:', error);

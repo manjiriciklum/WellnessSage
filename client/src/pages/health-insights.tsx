@@ -1,8 +1,7 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { AiInsights } from '@/components/dashboard/ai-insights';
 import { HealthOverview } from '@/components/dashboard/health-overview';
 import { HealthTrends } from '@/components/dashboard/health-trends';
+import { InsightsList } from '@/components/health-insights/insights-list';
 
 export default function HealthInsightsPage() {
   return (
@@ -11,7 +10,10 @@ export default function HealthInsightsPage() {
       
       <HealthOverview />
       
-      <AiInsights />
+      <section className="mb-8">
+        <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white mb-4">Detailed Health Analysis</h2>
+        <InsightsList />
+      </section>
       
       <section className="mb-8">
         <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white mb-4">Health Trends</h2>
