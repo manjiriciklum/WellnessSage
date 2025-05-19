@@ -22,76 +22,131 @@ import passport from 'passport';
 import mongoose from 'mongoose';
 import { calculateHealthScore } from './utils/health-score';
 
+// Store connected clients by user ID
+const clients = new Map<string, Set<WebSocket>>();
+
+// Helper function to normalize user ID to string
+function normalizeUserId(userId: string | number): string {
+  return userId.toString();
+}
+
+// Function to send notifications to a specific user
+function sendNotification(userId: string | number, notification: any) {
+  const normalizedUserId = normalizeUserId(userId);
+  console.log('Attempting to send notification to user:', normalizedUserId);
+  console.log('Current connected clients:', Array.from(clients.keys()));
+  
+  const userClients = clients.get(normalizedUserId);
+  if (!userClients || userClients.size === 0) {
+    console.log('No connected clients found for user:', normalizedUserId);
+    return;
+  }
+
+  const message = JSON.stringify(notification);
+  userClients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+      console.log('Notification sent to user:', normalizedUserId);
+    }
+  });
+}
+
 // Add reminder scheduler
 function startReminderScheduler() {
+  console.log('Starting reminder scheduler...');
   // Check for due reminders every minute
   setInterval(async () => {
     try {
       const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const currentDate = now.getDate();
-
+      console.log('\n=== Reminder Scheduler Check ===');
+      console.log('Current time:', now.toISOString());
+      console.log('Current minute:', now.getMinutes());
+      
       // Get all active reminders
       const reminders = await storage.getAllReminders();
+      console.log(`Found ${reminders.length} total reminders`);
       
       for (const reminder of reminders) {
-        if (reminder.isCompleted) continue;
+        console.log('\nProcessing reminder:', {
+          id: reminder.id || reminder._id,  // Handle both MongoDB and regular IDs
+          title: reminder.title,
+          frequency: reminder.frequency,
+          userId: reminder.userId,
+          isCompleted: reminder.isCompleted,
+          time: reminder.time
+        });
 
-        const [timeStr, reminderPeriod] = reminder.time.split(' ');
-        const [reminderHour, reminderMinute] = timeStr.split(':');
-        let reminderHourNum = parseInt(reminderHour);
-        const reminderMinuteNum = parseInt(reminderMinute);
-        
-        // Convert to 24-hour format
-        if (reminderPeriod === 'PM' && reminderHourNum < 12) {
-          reminderHourNum += 12;
-        } else if (reminderPeriod === 'AM' && reminderHourNum === 12) {
-          reminderHourNum = 0;
+        if (reminder.isCompleted || !reminder.frequency) {
+          console.log(`Skipping reminder ${reminder.title} - ${reminder.isCompleted ? 'completed' : 'no frequency'}`);
+          continue;
         }
 
         // Check if it's time to send the reminder
         let shouldSend = false;
         
-        switch (reminder.frequency.toLowerCase()) {
-          case '2min':
-            shouldSend = currentMinute % 2 === 0; // Send every 2 minutes
-            break;
-          case '5min':
-            shouldSend = currentMinute % 5 === 0; // Send every 5 minutes
-            break;
-          case '15min':
-            shouldSend = currentMinute % 15 === 0; // Send every 15 minutes
-            break;
-          case '30min':
-            shouldSend = currentMinute % 30 === 0; // Send every 30 minutes
-            break;
-          case 'hourly':
-            shouldSend = currentMinute === 0; // Send at the start of every hour
-            break;
-          case 'daily':
-            shouldSend = currentHour === reminderHourNum && currentMinute === reminderMinuteNum;
-            break;
-          case 'weekly':
-            // Send on the same day of the week at the specified time
-            shouldSend = currentDay === 1 && currentHour === reminderHourNum && currentMinute === reminderMinuteNum; // Monday
-            break;
-          case 'monthly':
-            // Send on the same date of the month at the specified time
-            shouldSend = currentDate === 1 && currentHour === reminderHourNum && currentMinute === reminderMinuteNum; // 1st of month
-            break;
-          case 'once':
-            // For one-time reminders, check if it's the exact time
-            shouldSend = currentHour === reminderHourNum && currentMinute === reminderMinuteNum;
-            break;
+        // Handle time-based frequencies (2min, 5min, etc.) differently
+        const frequency = reminder.frequency?.toLowerCase() || '';
+        console.log('Checking frequency:', frequency);
+        
+        if (['2min', '5min', '15min', '30min'].includes(frequency)) {
+          // For time-based frequencies, we only care about the current minute
+          const currentMinute = now.getMinutes();
+          switch (frequency) {
+            case '2min':
+              shouldSend = currentMinute % 2 === 0;
+              break;
+            case '5min':
+              shouldSend = currentMinute % 5 === 0;
+              break;
+            case '15min':
+              shouldSend = currentMinute % 15 === 0;
+              break;
+            case '30min':
+              shouldSend = currentMinute % 30 === 0;
+              break;
+          }
+          console.log(`Time-based frequency ${frequency}: currentMinute=${currentMinute}, shouldSend=${shouldSend}`);
+        } else if (reminder.time) {
+          // For other frequencies, parse the time
+          const reminderTime = new Date(reminder.time);
+          console.log('Parsed reminder time:', reminderTime.toISOString());
+          
+          const reminderHour = reminderTime.getHours();
+          const reminderMinute = reminderTime.getMinutes();
+          console.log(`Reminder scheduled for: ${reminderHour}:${reminderMinute}`);
+
+          switch (reminder.frequency.toLowerCase()) {
+            case 'hourly':
+              shouldSend = now.getMinutes() === 0;
+              break;
+            case 'daily':
+              shouldSend = now.getHours() === reminderHour && now.getMinutes() === reminderMinute;
+              break;
+            case 'weekly':
+              shouldSend = now.getDay() === reminderTime.getDay() && 
+                         now.getHours() === reminderHour && 
+                         now.getMinutes() === reminderMinute;
+              break;
+            case 'monthly':
+              shouldSend = now.getDate() === reminderTime.getDate() && 
+                         now.getHours() === reminderHour && 
+                         now.getMinutes() === reminderMinute;
+              break;
+            case 'once':
+              shouldSend = now.getHours() === reminderHour && now.getMinutes() === reminderMinute;
+              break;
+          }
+          console.log(`Frequency ${reminder.frequency}: shouldSend = ${shouldSend}`);
         }
 
         if (shouldSend) {
-          // Send notification to the user
-          sendNotification(reminder.userId, {
-            type: 'reminder',
-            data: reminder
+          console.log(`Sending reminder: ${reminder.title} (${reminder.frequency})`);
+          // Send notification using the string representation of the user ID
+          const userIdStr = reminder.userId.toString();
+          console.log('Sending notification to user:', userIdStr);
+          sendNotification(userIdStr, {
+            type: 'reminders',
+            data: [reminder]  // Wrap in array since client expects an array
           });
         }
       }
@@ -113,6 +168,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (process.env.NODE_ENV === 'production') {
     app.use(requireTLS);
   }
+  
+  // Create HTTP server first
+  const httpServer = createServer(app);
+
+  // Initialize WebSocket server for push notifications (alerts and reminders)
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws',
+    // Add these options to ensure proper upgrade handling
+    perMessageDeflate: {
+      zlibDeflateOptions: {
+        chunkSize: 1024,
+        memLevel: 7,
+        level: 3
+      },
+      zlibInflateOptions: {
+        chunkSize: 10 * 1024
+      },
+      clientNoContextTakeover: true,
+      serverNoContextTakeover: true,
+      serverMaxWindowBits: 10,
+      concurrencyLimit: 10,
+      threshold: 1024
+    }
+  });
+  
+  wss.on('connection', (ws) => {
+    console.log('New WebSocket client connected');
+    let userId: string | null = null;
+
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log('Received WebSocket message:', data);
+
+        if (data.type === 'register' && data.userId) {
+          userId = normalizeUserId(data.userId);
+          console.log('Registering WebSocket client for user ID:', userId);
+          
+          if (!clients.has(userId)) {
+            clients.set(userId, new Set());
+          }
+          clients.get(userId)!.add(ws);
+          
+          console.log('Current connections:', {
+            totalUsers: clients.size,
+            connectionsForUser: clients.get(userId)!.size
+          });
+
+          // Send any pending notifications
+          sendPendingNotifications(userId);
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      if (userId) {
+        console.log('WebSocket client disconnected for user:', userId);
+        const userClients = clients.get(userId);
+        if (userClients) {
+          userClients.delete(ws);
+          if (userClients.size === 0) {
+            clients.delete(userId);
+          }
+        }
+      }
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+
+    // Send welcome message
+    ws.send(JSON.stringify({
+      type: 'welcome',
+      message: 'Connected to WellnessSage WebSocket server',
+      timestamp: new Date().toISOString()
+    }));
+  });
+  
+  // Function to send pending notifications to a user
+  function sendPendingNotifications(userId: string | number) {
+    const normalizedUserId = normalizeUserId(userId);
+    console.log('Sending pending notifications to user:', normalizedUserId);
+    // Add your pending notifications logic here
+  }
+  
+  // Middleware to send push notifications when reminders are created
+  app.use((req, res, next) => {
+    const originalSend = res.send;
+    res.send = function(body) {
+      try {
+        // Check if this is a reminder creation response
+        if (req.method === 'POST' && req.path === '/api/reminders' && res.statusCode === 201) {
+          const reminder = JSON.parse(typeof body === 'string' ? body : body.toString());
+          if (reminder && reminder.userId) {
+            // Send push notification to the user
+            sendNotification(reminder.userId, {
+              type: 'new_reminder',
+              data: reminder
+            });
+          }
+        }
+        // Check if this is an AI insight creation response
+        else if (req.method === 'POST' && req.path === '/api/ai-insights' && res.statusCode === 201) {
+          const insight = JSON.parse(typeof body === 'string' ? body : body.toString());
+          if (insight && insight.userId) {
+            // Send push notification to the user
+            sendNotification(insight.userId.toString(), {
+              type: 'new_insight',
+              data: insight
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error in notification middleware:', error);
+      }
+      
+      return originalSend.call(this, body);
+    };
+    next();
+  });
   
   // API route to check database connection status
   app.get("/api/system/db-status", async (req, res) => {
@@ -351,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Send a notification about successful sync
-      sendNotification(device.userId, {
+      sendNotification(device.userId.toString(), {
         type: 'success',
         title: 'Data Synced',
         message: `${device.deviceName} data has been synced successfully.`,
@@ -463,13 +642,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/reminders", async (req, res) => {
     try {
-      console.log('Received reminder data:', req.body);
+      console.log('Received reminder data:', JSON.stringify(req.body, null, 2));
       const validatedData = insertReminderSchema.parse(req.body);
-      console.log('Validated reminder data:', validatedData);
+      console.log('Validated reminder data:', JSON.stringify(validatedData, null, 2));
+      
+      // Convert userId to MongoDB ObjectId if it's not already
+      if (typeof validatedData.userId === 'string' && !validatedData.userId.match(/^[0-9a-fA-F]{24}$/)) {
+        validatedData.userId = new mongoose.Types.ObjectId(validatedData.userId);
+        console.log('Converted userId to ObjectId:', validatedData.userId.toString());
+      }
+      
+      // Ensure time is in ISO format for consistency
+      if (validatedData.time) {
+        const time = new Date(validatedData.time);
+        if (isNaN(time.getTime())) {
+          throw new Error('Invalid time format');
+        }
+        validatedData.time = time.toISOString();
+        console.log('Normalized time to ISO format:', validatedData.time);
+      }
       
       const reminderStorage = isConnected() ? mongoStorage : storage;
+      console.log('Using storage type:', isConnected() ? 'MongoDB' : 'In-Memory');
+      
       const reminder = await reminderStorage.createReminder(validatedData);
-      console.log('Created reminder:', reminder);
+      console.log('Created reminder in MongoDB:', JSON.stringify(reminder, null, 2));
+      
+      // Send notification using the string representation of the user ID
+      const userIdStr = reminder.userId.toString();
+      console.log('Sending notification to user:', userIdStr);
+      sendNotification(userIdStr, {
+        type: 'new_reminder',
+        data: reminder
+      });
       
       return res.status(201).json(reminder);
     } catch (error) {
@@ -739,146 +944,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-
-  // Initialize WebSocket server for push notifications (alerts and reminders)
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  // Store connected clients with their user IDs
-  const clients = new Map<number, Set<WebSocket>>();
-  
-  wss.on('connection', (ws: WebSocket) => {
-    console.log('WebSocket client connected');
-    let userId: number | null = null;
-    
-    // Handle messages from clients
-    ws.on('message', (message: string) => {
-      try {
-        // Parse the message to get the user ID
-        const data = JSON.parse(message);
-        
-        if (data.type === 'register' && data.userId) {
-          userId = Number(data.userId);
-          
-          // Add this connection to the clients map
-          if (!clients.has(userId)) {
-            clients.set(userId, new Set());
-          }
-          clients.get(userId)?.add(ws);
-          
-          console.log(`WebSocket client registered for user ID: ${userId}`);
-          
-          // Send an initial set of pending notifications
-          sendPendingNotifications(userId, ws);
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-      }
-    });
-    
-    // Handle client disconnection
-    ws.on('close', () => {
-      console.log('WebSocket client disconnected');
-      if (userId && clients.has(userId)) {
-        clients.get(userId)?.delete(ws);
-        
-        // If no more connections for this user, clean up
-        if (clients.get(userId)?.size === 0) {
-          clients.delete(userId);
-        }
-      }
-    });
-    
-    // Send a welcome message
-    ws.send(JSON.stringify({ type: 'info', message: 'Connected to healthcare notification service' }));
-  });
-  
-  // Function to send notifications to a specific user
-  function sendNotification(userId: number, notification: any) {
-    if (clients.has(userId)) {
-      const userClients = clients.get(userId);
-      if (userClients) {
-        const message = JSON.stringify(notification);
-        for (const client of userClients) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-          }
-        }
-      }
-    }
-  }
-  
-  // Function to send pending notifications (reminders and alerts) to a user
-  async function sendPendingNotifications(userId: number, ws: WebSocket) {
-    try {
-      // Get pending reminders for the user
-      const reminders = await storage.getRemindersByUserId(userId);
-      const pendingReminders = reminders.filter(r => !r.isCompleted);
-      
-      if (pendingReminders.length > 0) {
-        // Only send if the connection is still open
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'reminders',
-            data: pendingReminders
-          }));
-        }
-      }
-      
-      // Get unread AI insights (alerts) for the user
-      const insights = await storage.getAiInsightsByUserId(userId);
-      const unreadInsights = insights.filter(i => !i.isRead);
-      
-      if (unreadInsights.length > 0) {
-        // Only send if the connection is still open
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'insights',
-            data: unreadInsights
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('Error sending pending notifications:', error);
-    }
-  }
-  
-  // Middleware to send push notifications when reminders are created
-  app.use((req, res, next) => {
-    const originalSend = res.send;
-    res.send = function(body) {
-      try {
-        // Check if this is a reminder creation response
-        if (req.method === 'POST' && req.path === '/api/reminders' && res.statusCode === 201) {
-          const reminder = JSON.parse(typeof body === 'string' ? body : body.toString());
-          if (reminder && reminder.userId) {
-            // Send push notification to the user
-            sendNotification(reminder.userId, {
-              type: 'new_reminder',
-              data: reminder
-            });
-          }
-        }
-        // Check if this is an AI insight creation response
-        else if (req.method === 'POST' && req.path === '/api/ai-insights' && res.statusCode === 201) {
-          const insight = JSON.parse(typeof body === 'string' ? body : body.toString());
-          if (insight && insight.userId) {
-            // Send push notification to the user
-            sendNotification(insight.userId, {
-              type: 'new_insight',
-              data: insight
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error in notification middleware:', error);
-      }
-      
-      return originalSend.call(this, body);
-    };
-    next();
-  });
-  
   return httpServer;
 }
 

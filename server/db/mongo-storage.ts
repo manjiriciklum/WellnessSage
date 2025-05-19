@@ -1239,8 +1239,8 @@ export class MongoStorage implements IStorage {
 
       // Save demo data (excluding goals)
       await Promise.all([
-        models.HealthData.create(healthData),
-        models.Reminder.insertMany(reminders)
+        models.HealthData.create(healthData)
+        // models.Reminder.insertMany(reminders)
       ]);
 
     } catch (error) {
