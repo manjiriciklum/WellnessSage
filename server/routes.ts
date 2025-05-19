@@ -217,8 +217,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             connectionsForUser: clients.get(userId)!.size
           });
 
-          // Send any pending notifications
-          sendPendingNotifications(userId);
+          // Send welcome message first
+          ws.send(JSON.stringify({
+            type: 'welcome',
+            message: 'Connected to WellnessSage WebSocket server',
+            timestamp: new Date().toISOString()
+          }));
+
+          // Then check and send daily reminders
+          checkDailyReminders(userId);
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
@@ -241,13 +248,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
     });
-
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'welcome',
-      message: 'Connected to WellnessSage WebSocket server',
-      timestamp: new Date().toISOString()
-    }));
   });
   
   // Function to send pending notifications to a user
@@ -652,13 +652,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Converted userId to ObjectId:', validatedData.userId.toString());
       }
       
-      // Ensure time is in ISO format for consistency
+      // Parse the time string (e.g., "11:50 AM")
       if (validatedData.time) {
-        const time = new Date(validatedData.time);
-        if (isNaN(time.getTime())) {
-          throw new Error('Invalid time format');
+        const [time, period] = validatedData.time.split(' ');
+        const [hours, minutes] = time.split(':');
+        let hour = parseInt(hours);
+        
+        // Convert to 24-hour format
+        if (period === 'PM' && hour !== 12) {
+          hour += 12;
+        } else if (period === 'AM' && hour === 12) {
+          hour = 0;
         }
-        validatedData.time = time.toISOString();
+        
+        // Create a date object for today with the specified time
+        const date = new Date();
+        date.setHours(hour, parseInt(minutes), 0, 0);
+        
+        validatedData.time = date.toISOString();
         console.log('Normalized time to ISO format:', validatedData.time);
       }
       
@@ -992,4 +1003,41 @@ export function setupAuthRoutes(app: Express) {
       email: req.user.email
     });
   });
+}
+
+// Function to check and send daily reminders
+async function checkDailyReminders(userId: string) {
+  try {
+    console.log('Checking daily reminders for user:', userId);
+    const reminders = await storage.getAllReminders();
+    console.log('All reminders:', reminders);
+    
+    const userReminders = reminders.filter(r => {
+      const matches = r.userId.toString() === userId && 
+                     r.frequency?.toLowerCase() === 'daily' && 
+                     !r.isCompleted;
+      console.log('Checking reminder:', {
+        id: r.id || r._id,
+        userId: r.userId,
+        frequency: r.frequency,
+        isCompleted: r.isCompleted,
+        matches
+      });
+      return matches;
+    });
+    
+    if (userReminders.length > 0) {
+      console.log('Found daily reminders:', userReminders.map(r => r.title));
+      // Send all daily reminders immediately
+      sendNotification(userId, {
+        type: 'reminders',
+        data: userReminders
+      });
+      console.log('Sent daily reminders notification to user:', userId);
+    } else {
+      console.log('No daily reminders found for user:', userId);
+    }
+  } catch (error) {
+    console.error('Error checking daily reminders:', error);
+  }
 }

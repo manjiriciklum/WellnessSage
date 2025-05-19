@@ -1213,6 +1213,37 @@ export class MongoStorage implements IStorage {
         healthMetrics: {}
       };
 
+      // Generate demo AI insights
+      const aiInsights = [
+        {
+          userId: objectId,
+          title: 'Stress Management Recommendation',
+          description: 'Your heart rate variability has decreased this week, which may indicate increased stress levels. Consider adding 10-minute meditation sessions in the morning.',
+          category: 'stress',
+          action: 'View Plan',
+          createdAt: new Date(),
+          isRead: false
+        },
+        {
+          userId: objectId,
+          title: 'Nutrition Improvement',
+          description: 'Based on your food logging patterns, we notice you may benefit from increasing protein intake in the morning. This could help sustain energy levels throughout the day.',
+          category: 'nutrition',
+          action: 'See Suggestions',
+          createdAt: new Date(),
+          isRead: false
+        },
+        {
+          userId: objectId,
+          title: 'Fitness Progress Alert',
+          description: "Great job on your consistency! You've met your step goal 5 days in a row. Consider increasing your daily step target by 10% to continue improving cardiovascular health.",
+          category: 'fitness',
+          action: 'Adjust Goals',
+          createdAt: new Date(),
+          isRead: false
+        }
+      ];
+
       // Generate demo reminders
       const reminders = [
         {
@@ -1237,11 +1268,14 @@ export class MongoStorage implements IStorage {
         }
       ];
 
-      // Save demo data (excluding goals)
+      // Save demo data
       await Promise.all([
-        models.HealthData.create(healthData)
-        // models.Reminder.insertMany(reminders)
+        models.HealthData.create(healthData),
+        models.AiInsight.insertMany(aiInsights),
+        models.Reminder.insertMany(reminders)
       ]);
+
+      console.log('Demo data generated successfully for user:', userId);
 
     } catch (error) {
       console.error('Error generating demo data:', error);

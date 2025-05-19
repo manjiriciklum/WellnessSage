@@ -31,7 +31,7 @@ const Login: React.FC = () => {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
-                Username
+                Usernamekk
               </label>
               <input
                 id="username"

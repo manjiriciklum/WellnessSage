@@ -63,7 +63,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         addNotification({
           title: reminder.title,
           message: `${reminder.category} reminder: ${reminder.time}`,
-          type: 'reminder'
+          type: 'reminder',
+          autoClose: false // Keep reminder notifications open until user dismisses
         });
       });
     };
@@ -87,7 +88,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       addNotification({
         title: 'New Reminder',
         message: reminder.title,
-        type: 'reminder'
+        type: 'reminder',
+        autoClose: false // Keep reminder notifications open until user dismisses
       });
     };
     
@@ -101,18 +103,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       });
     };
     
-    // Register handlers
+    // Register notification handlers
     notificationService.addListener('reminders', handleReminders);
-    notificationService.addListener('insights', handleInsights);
     notificationService.addListener('new_reminder', handleNewReminder);
     notificationService.addListener('new_insight', handleNewInsight);
+    notificationService.addListener('insights', handleInsights);
     
-    // Cleanup on unmount
     return () => {
       notificationService.removeListener('reminders', handleReminders);
-      notificationService.removeListener('insights', handleInsights);
       notificationService.removeListener('new_reminder', handleNewReminder);
       notificationService.removeListener('new_insight', handleNewInsight);
+      notificationService.removeListener('insights', handleInsights);
     };
   }, [userId]);
   
