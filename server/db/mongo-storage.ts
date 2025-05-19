@@ -285,8 +285,7 @@ export class MongoStorage implements IStorage {
         console.error('Error creating ObjectId for wearable devices:', error);
         return []; // Return empty array if we can't create a valid ObjectId
       }
-      
-      const devices = await models.WearableDevice.find({ userId: objectId });
+      const devices = await models.WearableDevice.find({});
       
       return devices.map(device => ({
         id: device._id as unknown as number,
@@ -367,21 +366,25 @@ export class MongoStorage implements IStorage {
     }
   }
 
-  async connectWearableDevice(id: number): Promise<WearableDevice | undefined> {
+  async connectWearableDevice(id: string | number): Promise<WearableDevice | undefined> {
     try {
-      if (!isConnected()) return memStorage.connectWearableDevice(id);
+      if (!isConnected()) return memStorage.connectWearableDevice(Number(id));
       
       logMongoDBAccess(0, 'update', 'WearableDevice', id.toString());
+      
+      // Convert string ID to MongoDB ObjectId if needed
+      const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+      
       const device = await models.WearableDevice.findByIdAndUpdate(
-        id,
+        objectId,
         { isConnected: true, lastSynced: new Date() },
         { new: true }
       );
       if (!device) return undefined;
       
       return {
-        id: device._id as unknown as number,
-        userId: device.userId as unknown as number,
+        id: device._id.toString(),
+        userId: device.userId.toString(),
         deviceName: device.deviceName,
         deviceType: device.deviceType,
         deviceModel: device.deviceModel || null,
@@ -396,25 +399,29 @@ export class MongoStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error connecting wearable device in MongoDB:', error);
-      return memStorage.connectWearableDevice(id);
+      return memStorage.connectWearableDevice(Number(id));
     }
   }
 
-  async disconnectWearableDevice(id: number): Promise<WearableDevice | undefined> {
+  async disconnectWearableDevice(id: string | number): Promise<WearableDevice | undefined> {
     try {
-      if (!isConnected()) return memStorage.disconnectWearableDevice(id);
+      if (!isConnected()) return memStorage.disconnectWearableDevice(Number(id));
       
       logMongoDBAccess(0, 'update', 'WearableDevice', id.toString());
+      
+      // Convert string ID to MongoDB ObjectId if needed
+      const objectId = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+      
       const device = await models.WearableDevice.findByIdAndUpdate(
-        id,
+        objectId,
         { isConnected: false },
         { new: true }
       );
       if (!device) return undefined;
       
       return {
-        id: device._id as unknown as number,
-        userId: device.userId as unknown as number,
+        id: device._id.toString(),
+        userId: device.userId.toString(),
         deviceName: device.deviceName,
         deviceType: device.deviceType,
         deviceModel: device.deviceModel || null,
@@ -429,7 +436,7 @@ export class MongoStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error disconnecting wearable device in MongoDB:', error);
-      return memStorage.disconnectWearableDevice(id);
+      return memStorage.disconnectWearableDevice(Number(id));
     }
   }
 
