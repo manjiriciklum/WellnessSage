@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 
 // Mock data specific to health insights page
-const healthInsightsMockData = (userId: string | number): AiInsight[] => [
+const healthInsightsMockData = (userId: number): AiInsight[] => [
   {
     id: 1,
     userId: userId,
@@ -46,14 +46,23 @@ export function InsightsList() {
   const { user } = useAuth();
   const userId = user?.id;
 
+  console.log(user);
+
   const { data: insights, isLoading, error } = useQuery<AiInsight[]>({
     queryKey: ['health-insights', userId],
     enabled: !!userId,
     initialData: userId ? healthInsightsMockData(userId) : undefined,
     queryFn: async () => {
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
       try {
-        const response = await apiRequest('GET', `/api/users/${userId}/health-insights`);
-        return response.json();
+        const response = await apiRequest('GET', `/api/users/${userId}/ai-insights`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
       } catch (error) {
         console.error('Error fetching health insights:', error);
         return healthInsightsMockData(userId);

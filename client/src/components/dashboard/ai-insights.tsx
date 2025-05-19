@@ -84,13 +84,13 @@ export function AiInsights() {
     <section className="mb-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white">AI Health Insights</h2>
-        <Button 
+        {/* <Button 
           variant="link" 
           className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0"
           onClick={() => navigate('/health-insights')}
         >
           View All
-        </Button>
+        </Button> */}
       </div>
       
       <InsightsList />
