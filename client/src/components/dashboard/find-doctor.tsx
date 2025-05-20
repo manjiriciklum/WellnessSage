@@ -19,32 +19,29 @@ import {
 // Transform API doctor data to match our expected format
 const transformDoctorData = (apiDoctor: any): Doctor => {
   return {
-    id: apiDoctor.id || apiDoctor._id,
-    name: `${apiDoctor.firstName || ''} ${apiDoctor.lastName || ''}`.trim(),
+    id: apiDoctor.id || apiDoctor._id?.$oid || '',
+    name: apiDoctor.name || '',
     specialty: apiDoctor.specialty || '',
-    address: apiDoctor.practice || '',
-    area: apiDoctor.location || '',
-    city: apiDoctor.location || '',
-    state: '',
-    country: '',
+    address: apiDoctor.address || '',
+    area: apiDoctor.area || '',
+    city: apiDoctor.city || '',
+    state: apiDoctor.state || '',
+    country: apiDoctor.country || '',
     rating: apiDoctor.rating || 0,
-    experience: 0,
-    languages: [],
-    education: [],
-    available: true,
-    consultationFee: 0,
-    imageUrl: apiDoctor.profileImage || '',
-    gender: '',
-    description: '',
-    location: {
-      lat: 0,
-      lng: 0
-    },
-    reviews: [],
-    availability: {},
-    vector_text: '',
-    symptoms: [],
-    createdAt: new Date()
+    experience: apiDoctor.experience || 0,
+    languages: apiDoctor.languages || [],
+    education: apiDoctor.education || [],
+    available: apiDoctor.available || false,
+    consultationFee: apiDoctor.consultationFee || 0,
+    imageUrl: apiDoctor.imageUrl || '',
+    gender: apiDoctor.gender || '',
+    description: apiDoctor.description || '',
+    location: apiDoctor.location || { lat: 0, lng: 0 },
+    reviews: apiDoctor.reviews || [],
+    availability: apiDoctor.availability || {},
+    vector_text: apiDoctor.vector_text || '',
+    symptoms: apiDoctor.symptoms || [],
+    createdAt: apiDoctor.createdAt ? new Date(apiDoctor.createdAt) : new Date()
   };
 };
 
@@ -97,6 +94,8 @@ export function FindDoctor() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentDoctors = filteredDoctors.slice(indexOfFirstItem, indexOfLastItem);
 
+  console.log(currentDoctors)
+
   // Handle page changes
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages || 1)));
@@ -106,6 +105,12 @@ export function FindDoctor() {
   const goToPreviousPage = () => goToPage(currentPage - 1);
   const goToNextPage = () => goToPage(currentPage + 1);
   const goToLastPage = () => goToPage(totalPages || 1);
+
+  // Format location for display
+  const formatLocation = (doctor: Doctor) => {
+    const parts = [doctor.area, doctor.city, doctor.state].filter(Boolean);
+    return parts.join(', ') || 'Location not specified';
+  };
 
   return (
     <div>
@@ -192,7 +197,7 @@ export function FindDoctor() {
                             {doctor.name}
                           </h3>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300">
-                            {doctor.specialty} • {doctor.area}
+                            {doctor.specialty} • {formatLocation(doctor)}
                           </p>
                           <div className="flex items-center mt-1">
                             <StarRating 
