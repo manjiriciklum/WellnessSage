@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { StarRating } from '@/components/ui/star-rating';
-import { type Doctor } from '@shared/schema';
+import { type Doctor } from '@/types/doctor';
 import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Link } from 'wouter';
@@ -16,6 +16,38 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+// Transform API doctor data to match our expected format
+const transformDoctorData = (apiDoctor: any): Doctor => {
+  return {
+    id: apiDoctor.id || apiDoctor._id,
+    name: `${apiDoctor.firstName || ''} ${apiDoctor.lastName || ''}`.trim(),
+    specialty: apiDoctor.specialty || '',
+    address: apiDoctor.practice || '',
+    area: apiDoctor.location || '',
+    city: apiDoctor.location || '',
+    state: '',
+    country: '',
+    rating: apiDoctor.rating || 0,
+    experience: 0,
+    languages: [],
+    education: [],
+    available: true,
+    consultationFee: 0,
+    imageUrl: apiDoctor.profileImage || '',
+    gender: '',
+    description: '',
+    location: {
+      lat: 0,
+      lng: 0
+    },
+    reviews: [],
+    availability: {},
+    vector_text: '',
+    symptoms: [],
+    createdAt: new Date()
+  };
+};
+
 export function FindDoctor() {
   const [specialty, setSpecialty] = useState('');
   const [location, setLocation] = useState('San Francisco, CA');
@@ -25,9 +57,23 @@ export function FindDoctor() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  const { data: doctors, isLoading } = useQuery<Doctor[]>({
+  const { data: apiDoctors, isLoading } = useQuery<any[]>({
     queryKey: ['/api/doctors'],
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Consider data stale immediately
+    cacheTime: 0, // Don't cache the data
+    retry: 1,
+    onSuccess: (data) => {
+      console.log('Fetched doctors data:', data);
+    },
+    onError: (error) => {
+      console.error('Error fetching doctors:', error);
+    }
   });
+
+  // Transform the API data
+  const doctors = apiDoctors?.map(transformDoctorData);
 
   const specialties = ['Primary Care', 'Cardiology', 'Mental Health', 'Dermatology', 'Nutrition'];
   const [activeSpecialty, setActiveSpecialty] = useState('All');
@@ -39,17 +85,17 @@ export function FindDoctor() {
 
   // Filter doctors based on search term and active specialty
   const filteredDoctors = doctors?.filter(doctor => {
-    const fullName = `${doctor.firstName} ${doctor.lastName}`.toLowerCase();
+    const fullName = doctor.name.toLowerCase();
     const matchesSearch = searchTerm === '' || fullName.includes(searchTerm.toLowerCase());
     const matchesSpecialty = activeSpecialty === 'All' || doctor.specialty === activeSpecialty;
     return matchesSearch && matchesSpecialty;
-  });
+  }) || [];
 
   // Calculate pagination
-  const totalPages = Math.ceil((filteredDoctors?.length || 0) / itemsPerPage);
+  const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentDoctors = filteredDoctors?.slice(indexOfFirstItem, indexOfLastItem) || [];
+  const currentDoctors = filteredDoctors.slice(indexOfFirstItem, indexOfLastItem);
 
   // Handle page changes
   const goToPage = (page: number) => {
@@ -126,7 +172,7 @@ export function FindDoctor() {
                 </div>
               ))}
             </div>
-          ) : filteredDoctors?.length === 0 ? (
+          ) : filteredDoctors.length === 0 ? (
             <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
               No doctors found matching your search criteria.
             </div>
@@ -136,25 +182,28 @@ export function FindDoctor() {
                 <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
-                      <AvatarImage src={doctor?.profileImage || ''} alt={`Dr. ${doctor?.firstName} ${doctor?.lastName}`} />
-                      {/* <AvatarFallback>{doctor?.firstName[0]}{doctor?.lastName[0]}</AvatarFallback> */}
+                      <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
+                      <AvatarFallback>{doctor.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div>
                           <h3 className="text-md font-medium text-neutral-800 dark:text-white">
-                            Dr. {doctor.firstName} {doctor.lastName}
+                            {doctor.name}
                           </h3>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300">
-                            {doctor.specialty} • {doctor.practice}
+                            {doctor.specialty} • {doctor.area}
                           </p>
                           <div className="flex items-center mt-1">
                             <StarRating 
-                              value={doctor.rating || 0} 
+                              value={doctor.rating} 
                               showValue={true}
-                              reviewCount={doctor.reviewCount || undefined}
+                              reviewCount={doctor.reviews.length}
                             />
                           </div>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
+                            Experience: {doctor.experience} years • Fee: ₹{doctor.consultationFee}
+                          </p>
                         </div>
                         <div className="flex gap-2 mt-4 md:mt-0">
                           <Button size="sm" className="text-xs md:text-sm">

@@ -521,15 +521,29 @@ export class MongoStorage implements IStorage {
       const doctors = await models.Doctor.find({});
       
       return doctors.map(doctor => ({
-        id: doctor._id as unknown as number,
-        firstName: doctor.firstName,
-        lastName: doctor.lastName,
+        id: doctor.id,
+        name: doctor.name,
         specialty: doctor.specialty,
-        practice: doctor.practice,
-        location: doctor.location,
+        address: doctor.address,
+        area: doctor.area,
+        city: doctor.city,
+        state: doctor.state,
+        country: doctor.country,
         rating: doctor.rating,
-        reviewCount: doctor.reviewCount,
-        profileImage: doctor.profileImage || null
+        experience: doctor.experience,
+        languages: doctor.languages,
+        education: doctor.education,
+        available: doctor.available,
+        consultationFee: doctor.consultationFee,
+        imageUrl: doctor.imageUrl,
+        gender: doctor.gender,
+        description: doctor.description,
+        location: doctor.location,
+        reviews: doctor.reviews,
+        availability: doctor.availability,
+        vector_text: doctor.vector_text,
+        symptoms: doctor.symptoms,
+        createdAt: doctor.createdAt
       }));
     } catch (error) {
       console.error('Error getting all doctors from MongoDB:', error);

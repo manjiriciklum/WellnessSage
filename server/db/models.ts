@@ -61,14 +61,37 @@ export interface IWellnessPlan extends Document {
 
 // Doctor Interface
 export interface IDoctor extends Document {
-  firstName: string;
-  lastName: string;
+  id: string;
+  name: string;
   specialty: string;
-  practice: string;
-  location: string;
+  address: string;
+  area: string;
+  city: string;
+  state: string;
+  country: string;
   rating: number;
-  reviewCount: number;
-  profileImage: string;
+  experience: number;
+  languages: string[];
+  education: string[];
+  available: boolean;
+  consultationFee: number;
+  imageUrl: string;
+  gender: string;
+  description: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  reviews: any[];
+  availability: {
+    [key: string]: {
+      morning: boolean;
+      afternoon: boolean;
+      evening: boolean;
+    };
+  };
+  vector_text: string;
+  symptoms: string[];
   createdAt: Date;
 }
 
@@ -186,14 +209,39 @@ const WellnessPlanSchema = new Schema<IWellnessPlan>({
 });
 
 const DoctorSchema = new Schema<IDoctor>({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
   specialty: { type: String, required: true },
-  practice: { type: String, required: true },
-  location: { type: String, required: true },
+  address: { type: String, required: true },
+  area: { type: String, required: true },
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  country: { type: String, required: true },
   rating: { type: Number, required: true },
-  reviewCount: { type: Number, default: 0 },
-  profileImage: { type: String, required: true },
+  experience: { type: Number, required: true },
+  languages: { type: [String], required: true },
+  education: { type: [String], required: true },
+  available: { type: Boolean, default: true },
+  consultationFee: { type: Number, required: true },
+  imageUrl: { type: String, default: '' },
+  gender: { type: String, required: true },
+  description: { type: String, required: true },
+  location: {
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true }
+  },
+  reviews: { type: [Schema.Types.Mixed], default: [] },
+  availability: {
+    type: Map,
+    of: {
+      morning: { type: Boolean, default: false },
+      afternoon: { type: Boolean, default: false },
+      evening: { type: Boolean, default: false }
+    },
+    default: {}
+  },
+  vector_text: { type: String, required: true },
+  symptoms: { type: [String], required: true },
   createdAt: { type: Date, default: Date.now }
 });
 

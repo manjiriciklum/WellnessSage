@@ -649,24 +649,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Doctors routes
   app.get("/api/doctors", async (req, res) => {
-    const specialty = req.query.specialty as string | undefined;
-    const location = req.query.location as string | undefined;
-    
-    // Use MongoDB storage when connected, otherwise fall back to in-memory
-    const doctorStorage = isConnected() ? mongoStorage : storage;
-    
-    if (specialty && location) {
-      const doctors = await doctorStorage.getDoctorsBySpecialtyAndLocation(specialty, location);
-      return res.json(doctors);
-    } else if (specialty) {
-      const doctors = await doctorStorage.getDoctorsBySpecialty(specialty);
-      return res.json(doctors);
-    } else if (location) {
-      const doctors = await doctorStorage.getDoctorsByLocation(location);
-      return res.json(doctors);
-    } else {
-      const doctors = await doctorStorage.getAllDoctors();
-      return res.json(doctors);
+    try {
+      console.log('Fetching doctors from MongoDB...');
+      const doctors = await mongoStorage.getAllDoctors();
+      console.log('Fetched doctors:', doctors);
+      res.json(doctors);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      res.status(500).json({ error: 'Failed to fetch doctors' });
+    }
+  });
+
+  app.get('/api/doctors/specialty/:specialty', async (req, res) => {
+    try {
+      const { specialty } = req.params;
+      const doctors = await mongoStorage.getDoctorsBySpecialty(specialty);
+      res.json(doctors);
+    } catch (error) {
+      console.error('Error fetching doctors by specialty:', error);
+      res.status(500).json({ error: 'Failed to fetch doctors by specialty' });
+    }
+  });
+
+  app.get('/api/doctors/location/:location', async (req, res) => {
+    try {
+      const { location } = req.params;
+      const doctors = await mongoStorage.getDoctorsByLocation(location);
+      res.json(doctors);
+    } catch (error) {
+      console.error('Error fetching doctors by location:', error);
+      res.status(500).json({ error: 'Failed to fetch doctors by location' });
     }
   });
 
