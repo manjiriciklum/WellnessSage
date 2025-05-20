@@ -5,14 +5,25 @@ import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { StarRating } from '@/components/ui/star-rating';
 import { type Doctor } from '@shared/schema';
-import { Search, MapPin, Eye } from 'lucide-react';
+import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Link } from 'wouter';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function FindDoctor() {
   const [specialty, setSpecialty] = useState('');
   const [location, setLocation] = useState('San Francisco, CA');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const { data: doctors, isLoading } = useQuery<Doctor[]>({
     queryKey: ['/api/doctors'],
@@ -23,6 +34,7 @@ export function FindDoctor() {
 
   const handleSpecialtyClick = (specialty: string) => {
     setActiveSpecialty(specialty);
+    setCurrentPage(1); // Reset to first page when changing specialty
   };
 
   // Filter doctors based on search term and active specialty
@@ -32,6 +44,22 @@ export function FindDoctor() {
     const matchesSpecialty = activeSpecialty === 'All' || doctor.specialty === activeSpecialty;
     return matchesSearch && matchesSpecialty;
   });
+
+  // Calculate pagination
+  const totalPages = Math.ceil((filteredDoctors?.length || 0) / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentDoctors = filteredDoctors?.slice(indexOfFirstItem, indexOfLastItem) || [];
+
+  // Handle page changes
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages || 1)));
+  };
+
+  const goToFirstPage = () => goToPage(1);
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+  const goToNextPage = () => goToPage(currentPage + 1);
+  const goToLastPage = () => goToPage(totalPages || 1);
 
   return (
     <div>
@@ -51,7 +79,10 @@ export function FindDoctor() {
                 placeholder="Search by doctor name..." 
                 className="pl-10"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
               />
             </div>
             <div className="relative flex-1 min-w-[180px]">
@@ -101,7 +132,7 @@ export function FindDoctor() {
             </div>
           ) : (
             <>
-              {filteredDoctors?.map((doctor) => (
+              {currentDoctors.map((doctor) => (
                 <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
@@ -139,6 +170,55 @@ export function FindDoctor() {
                   </div>
                 </div>
               ))}
+              
+              {/* Pagination controls */}
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredDoctors.length)} of {filteredDoctors.length} doctors
+                </div>
+                
+                <div className="flex gap-1">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToFirstPage} 
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft size={16} />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToPreviousPage} 
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft size={16} />
+                  </Button>
+                  
+                  <div className="flex items-center px-4">
+                    <span className="text-sm">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToNextPage} 
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >
+                    <ChevronRight size={16} />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToLastPage} 
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >
+                    <ChevronsRight size={16} />
+                  </Button>
+                </div>
+              </div>
             </>
           )}
         </CardContent>
