@@ -222,7 +222,7 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                     <Avatar className="w-16 h-16">
                       <AvatarImage src={doctor.profileImage || ''} alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} />
-                      <AvatarFallback>{doctor.firstName[0]}{doctor.lastName[0]}</AvatarFallback>
+                      {/* <AvatarFallback>{doctor.firstName[0]}{doctor.lastName[0]}</AvatarFallback> */}
                     </Avatar>
                     <div className="flex-1">
                       <h3 className="text-md font-medium text-neutral-800 dark:text-white">

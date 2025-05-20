@@ -105,8 +105,8 @@ export function FindDoctor() {
                 <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
-                      <AvatarImage src={doctor.profileImage || ''} alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} />
-                      <AvatarFallback>{doctor.firstName[0]}{doctor.lastName[0]}</AvatarFallback>
+                      <AvatarImage src={doctor?.profileImage || ''} alt={`Dr. ${doctor?.firstName} ${doctor?.lastName}`} />
+                      {/* <AvatarFallback>{doctor?.firstName[0]}{doctor?.lastName[0]}</AvatarFallback> */}
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
