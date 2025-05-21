@@ -17,7 +17,7 @@ export default function FindDoctorPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="shadow-sm md:col-span-2">
           <CardContent className="p-5">
-            <div className="flex flex-wrap gap-3">
+            {/* <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={18} />
                 <Input 
@@ -35,7 +35,7 @@ export default function FindDoctorPage() {
               <Button>
                 Search
               </Button>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
         
@@ -58,12 +58,12 @@ export default function FindDoctorPage() {
       
       <Tabs defaultValue="all">
         <div className="flex items-center mb-6">
-          <TabsList>
+          {/* <TabsList>
             <TabsTrigger value="all">All Specialties</TabsTrigger>
             <TabsTrigger value="primary">Primary Care</TabsTrigger>
             <TabsTrigger value="cardiology">Cardiology</TabsTrigger>
             <TabsTrigger value="mental">Mental Health</TabsTrigger>
-          </TabsList>
+          </TabsList> */}
         </div>
         
         <TabsContent value="all">

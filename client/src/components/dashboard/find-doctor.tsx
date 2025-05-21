@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { StarRating } from '@/components/ui/star-rating';
 import { type Doctor } from '@/types/doctor';
-import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar as CalendarIcon } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Link } from 'wouter';
 import {
@@ -15,6 +15,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { format, addDays, isBefore, startOfDay } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
 
 // Transform API doctor data to match our expected format
 const transformDoctorData = (apiDoctor: any): Doctor => {
@@ -110,6 +123,105 @@ export function FindDoctor() {
   const formatLocation = (doctor: Doctor) => {
     const parts = [doctor.area, doctor.city, doctor.state].filter(Boolean);
     return parts.join(', ') || 'Location not specified';
+  };
+
+  // Add new state for appointment booking
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedReason, setSelectedReason] = useState<string>('');
+  const [showTimeSlots, setShowTimeSlots] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  const { toast } = useToast();
+
+  // Add appointment booking handlers
+  const handleBookAppointment = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsBookingDialogOpen(true);
+  };
+
+  const handleViewProfile = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsProfileDialogOpen(true);
+  };
+
+  const handleAppointmentSubmit = async () => {
+    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason) return;
+
+    try {
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          doctorId: selectedDoctor.id,
+          date: selectedDate.toISOString(),
+          timeSlot: selectedTimeSlot,
+          location: selectedLocation,
+          reason: selectedReason,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to book appointment');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Appointment Booked",
+        description: `Your appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
+      });
+
+      // Close dialog and reset form
+      setIsBookingDialogOpen(false);
+      setSelectedDate(new Date());
+      setSelectedTimeSlot('');
+      setSelectedLocation('');
+      setSelectedReason('');
+      setShowTimeSlots(false);
+      setSelectedDoctor(null);
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to book appointment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Add helper functions
+  const getAvailableTimeSlots = (doctor: Doctor, date: Date): string[] => {
+    // TODO: Replace with actual availability check from doctor's schedule
+    return [
+      '09:00 AM',
+      '10:30 AM',
+      '02:00 PM',
+      '03:30 PM',
+      '04:00 PM'
+    ];
+  };
+
+  const getDoctorLocations = (doctor: Doctor) => {
+    return [
+      { id: 'main', name: `${doctor.name}'s Main Clinic - ${formatLocation(doctor)}` },
+      { id: 'satellite', name: `${doctor.name}'s Satellite Clinic - ${doctor.area}` }
+    ];
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedTimeSlot(''); // Reset time slot when date changes
+    setShowTimeSlots(true);
+    setIsCalendarOpen(false); // Close the calendar popup
   };
 
   return (
@@ -211,7 +323,11 @@ export function FindDoctor() {
                           </p>
                         </div>
                         <div className="flex gap-2 mt-4 md:mt-0">
-                          <Button size="sm" className="text-xs md:text-sm">
+                          <Button 
+                            size="sm" 
+                            className="text-xs md:text-sm"
+                            onClick={() => handleBookAppointment(doctor)}
+                          >
                             Book Appointment
                           </Button>
                           <Button variant="outline" size="sm" className="text-xs md:text-sm">
@@ -277,6 +393,192 @@ export function FindDoctor() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Booking Dialog */}
+      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Book Appointment</DialogTitle>
+            <DialogDescription>
+              Schedule an appointment with Dr. {selectedDoctor?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Date Selection */}
+            <div className="grid gap-2">
+              <Label>Select Date</Label>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    disabled={(date) => {
+                      return isBefore(date, startOfDay(new Date()));
+                    }}
+                    modifiers={{
+                      available: (date) => {
+                        return !isBefore(date, startOfDay(addDays(new Date(), 1)));
+                      }
+                    }}
+                    modifiersStyles={{
+                      available: {
+                        fontWeight: 'bold',
+                        color: 'var(--primary)',
+                        textDecoration: 'underline'
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Time Slots */}
+            {showTimeSlots && selectedDate && (
+              <div className="grid gap-2">
+                <Label>Available Time Slots</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedDoctor && getAvailableTimeSlots(selectedDoctor, selectedDate).map((slot) => (
+                    <Button
+                      key={slot}
+                      variant={selectedTimeSlot === slot ? "default" : "outline"}
+                      className="w-full"
+                      onClick={() => setSelectedTimeSlot(slot)}
+                    >
+                      {slot}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Location Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="location">Select Location</Label>
+              <Select 
+                value={selectedLocation} 
+                onValueChange={setSelectedLocation}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedDoctor && getDoctorLocations(selectedDoctor).map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Reason Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="reason">Reason for Visit</Label>
+              <Select 
+                value={selectedReason} 
+                onValueChange={setSelectedReason}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason for visit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General Checkup</SelectItem>
+                  <SelectItem value="followup">Follow-up Visit</SelectItem>
+                  <SelectItem value="consultation">New Consultation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAppointmentSubmit}
+              disabled={!selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason}
+            >
+              Confirm Booking
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Profile Dialog */}
+      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Doctor Profile</DialogTitle>
+            <DialogDescription>
+              Detailed information about Dr. {selectedDoctor?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedDoctor && (
+            <div className="grid gap-4">
+              <div>
+                <h4 className="font-medium mb-2">About</h4>
+                <p className="text-sm text-neutral-600">{selectedDoctor.description}</p>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">Experience</h4>
+                <p className="text-sm text-neutral-600">{selectedDoctor.experience} years of experience</p>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">Education</h4>
+                <ul className="list-disc list-inside text-sm text-neutral-600">
+                  {selectedDoctor.education.map((edu, index) => (
+                    <li key={index}>{edu}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">Languages</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedDoctor.languages.map((lang, index) => (
+                    <span key={index} className="px-2 py-1 bg-neutral-100 rounded-full text-sm">
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">Location</h4>
+                <p className="text-sm text-neutral-600">
+                  {formatLocation(selectedDoctor)}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">Consultation Fee</h4>
+                <p className="text-sm text-neutral-600">₹{selectedDoctor.consultationFee}</p>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={() => setIsProfileDialogOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
