@@ -116,8 +116,14 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   // Transform the API data
   const doctors = apiDoctors?.map(transformDoctorData);
 
-  // Get unique locations for filter dropdown
-  const locations = Array.from(new Set(doctors?.map(doctor => doctor.area) || []));
+  // Get unique locations for filter dropdown - only include locations with doctors
+  const locations = Array.from(
+    new Set(
+      doctors?.filter(doctor => doctor.area && doctor.city) // Only include doctors with both area and city
+        .map(doctor => doctor.area)
+        .filter(Boolean) // Remove any null/undefined values
+    )
+  ).sort(); // Sort alphabetically
 
   // Filter doctors based on search term and filters
   const filteredDoctors = doctors?.filter(doctor => {

@@ -213,12 +213,12 @@ export default function FindDoctorPage() {
       {/* Rest of the content */}
       <Tabs defaultValue="all" value={activeSpecialty} onValueChange={setActiveSpecialty}>
         <div className="flex items-center mb-6">
-          <TabsList>
+          {/* <TabsList>
             <TabsTrigger value="all">All Specialties</TabsTrigger>
             <TabsTrigger value="Primary Care">Primary Care</TabsTrigger>
             <TabsTrigger value="Cardiology">Cardiology</TabsTrigger>
             <TabsTrigger value="Mental Health">Mental Health</TabsTrigger>
-          </TabsList>
+          </TabsList> */}
         </div>
         
         <TabsContent value="all">
