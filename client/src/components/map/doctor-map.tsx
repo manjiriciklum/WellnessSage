@@ -10,9 +10,10 @@ interface DoctorMapProps {
   doctors: Doctor[];
   selectedDoctor?: Doctor | null;
   onDoctorSelect?: (doctor: Doctor) => void;
+  onMapReady?: (map: mapboxgl.Map) => void;
 }
 
-export function DoctorMap({ doctors, selectedDoctor, onDoctorSelect }: DoctorMapProps) {
+export function DoctorMap({ doctors, selectedDoctor, onDoctorSelect, onMapReady }: DoctorMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
@@ -20,50 +21,30 @@ export function DoctorMap({ doctors, selectedDoctor, onDoctorSelect }: DoctorMap
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (mapContainer.current && !map.current) {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: doctors.length > 0 ? [doctors[0].location.lng, doctors[0].location.lat] : [-98.5795, 39.8283],
+        zoom: doctors.length > 0 ? 12 : 3.5,
+        attributionControl: false,
+        minZoom: 3,
+        maxZoom: 20
+      });
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-98.5795, 39.8283], // Center of US
-      zoom: 3.5,
-      attributionControl: false, // We'll add our own attribution
-      maxBounds: [
-        [-125.0, 24.0], // Southwest coordinates
-        [-66.0, 50.0]   // Northeast coordinates
-      ],
-      minZoom: 2.5,
-      maxZoom: 15
-    });
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.current.addControl(new mapboxgl.AttributionControl({
+        compact: true
+      }), 'bottom-right');
 
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    
-    // Add attribution
-    map.current.addControl(new mapboxgl.AttributionControl({
-      compact: true
-    }), 'bottom-right');
-
-    // Handle resize
-    const handleResize = () => {
-      if (map.current) {
-        map.current.resize();
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    map.current.on('load', () => {
-      setMapLoaded(true);
-    });
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (map.current) {
-        map.current.remove();
-      }
-    };
-  }, []);
+      map.current.on('load', () => {
+        setMapLoaded(true);
+        if (onMapReady) {
+          onMapReady(map.current);
+        }
+      });
+    }
+  }, [doctors, onMapReady]);
 
   // Update markers when doctors change
   useEffect(() => {

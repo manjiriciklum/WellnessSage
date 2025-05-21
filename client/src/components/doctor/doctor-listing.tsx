@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { StarRating } from '@/components/ui/star-rating';
 import { type Doctor } from '@/types/doctor';
-import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, X } from 'lucide-react';
+import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, X, Navigation } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Link } from 'wouter';
 import {
@@ -36,6 +36,7 @@ type SortOrder = 'asc' | 'desc';
 
 interface DoctorListingProps {
   specialty?: string;
+  onShowOnMap?: (doctor: Doctor) => void;
 }
 
 // Transform API doctor data to match our expected format
@@ -67,7 +68,7 @@ const transformDoctorData = (apiDoctor: any): Doctor => {
   };
 };
 
-export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
+export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   
@@ -394,7 +395,7 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
           ) : (
             <>
               {currentDoctors.map((doctor) => (
-                <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
+                <Card key={doctor.id} className="p-4">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
                       <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
@@ -403,7 +404,7 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
                     <div className="flex-1">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div>
-                          <h3 className="text-md font-medium text-neutral-800 dark:text-white">
+                          <h3 className="text-lg font-medium text-neutral-800 dark:text-white">
                             {doctor.name}
                           </h3>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300">
@@ -423,25 +424,23 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
                         <div className="flex gap-2 mt-4 md:mt-0">
                           <Button 
                             size="sm" 
+                            variant="outline"
                             className="text-xs md:text-sm"
-                            onClick={() => handleBookAppointment(doctor)}
+                            onClick={() => onShowOnMap?.(doctor)}
                           >
-                            Book Appointment
+                            <Navigation size={16} className="mr-1" />
+                            Show on Map
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-xs md:text-sm"
-                            onClick={() => handleViewProfile(doctor)}
-                          >
-                            <Eye size={16} className="mr-1" />
-                            View Profile
-                          </Button>
+                          <Link href={`/doctor/${doctor.id}`}>
+                            <Button size="sm" className="text-xs md:text-sm">
+                              View Profile
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
               
               {/* Pagination controls */}

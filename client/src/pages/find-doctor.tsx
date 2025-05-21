@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
-import { Search, MapPin, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, MapPin, Calendar as CalendarIcon, Navigation } from 'lucide-react';
 import { DoctorListing } from '@/components/doctor/doctor-listing';
 import { useQuery } from '@tanstack/react-query';
 import { StarRating } from '@/components/ui/star-rating';
@@ -31,6 +31,17 @@ import { format, addDays, isBefore, startOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+
+// Helper function to format location
+const formatLocation = (doctor: Doctor): string => {
+  const parts = [
+    doctor.area,
+    doctor.city,
+    doctor.state,
+    doctor.country
+  ].filter(Boolean);
+  return parts.join(', ');
+};
 
 // Transform API doctor data to match our expected format
 const transformDoctorData = (apiDoctor: any): Doctor => {
@@ -66,6 +77,7 @@ export default function FindDoctorPage() {
   const [mapSelectedDoctor, setMapSelectedDoctor] = useState<Doctor | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSpecialty, setActiveSpecialty] = useState('all');
+  const [mapRef, setMapRef] = useState<any>(null);
   
   // Fetch doctors data
   const { data: apiDoctors, isLoading } = useQuery<any[]>({
@@ -73,13 +85,7 @@ export default function FindDoctorPage() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     staleTime: 0,
-    retry: 1,
-    onSuccess: (data) => {
-      console.log('Fetched doctors data:', data);
-    },
-    onError: (error) => {
-      console.error('Error fetching doctors:', error);
-    }
+    retry: 1
   });
 
   // Transform the API data
@@ -92,7 +98,77 @@ export default function FindDoctorPage() {
     const matchesSpecialty = activeSpecialty === 'all' || doctor.specialty === activeSpecialty;
     return matchesSearch && matchesSpecialty;
   });
-  
+
+  const handleDoctorClick = (doctor: Doctor) => {
+    setMapSelectedDoctor(doctor);
+    if (mapRef && doctor.location?.lat && doctor.location?.lng) {
+      // Stage 1: Start with an extremely wide view
+      mapRef.flyTo({
+        center: [doctor.location.lng, doctor.location.lat],
+        zoom: 3, // Start with a continent-level view
+        duration: 2000,
+        essential: true,
+        pitch: 0,
+        bearing: 0,
+        padding: { top: 50, bottom: 50, left: 50, right: 50 },
+        curve: 1.5 // Accelerate the animation
+      });
+
+      // Stage 2: Zoom to country level with rotation
+      setTimeout(() => {
+        mapRef.flyTo({
+          center: [doctor.location.lng, doctor.location.lat],
+          zoom: 8,
+          duration: 2000,
+          essential: true,
+          pitch: 30,
+          bearing: 45, // Rotate 45 degrees
+          curve: 1.5
+        });
+
+        // Stage 3: Zoom to city level with more rotation
+        setTimeout(() => {
+          mapRef.flyTo({
+            center: [doctor.location.lng, doctor.location.lat],
+            zoom: 15,
+            duration: 2000,
+            essential: true,
+            pitch: 45,
+            bearing: -45, // Rotate back
+            curve: 1.5
+          });
+
+          // Stage 4: Final extreme close-up with dramatic effects
+          setTimeout(() => {
+            // First, rotate to create a spinning effect
+            mapRef.flyTo({
+              center: [doctor.location.lng, doctor.location.lat],
+              zoom: 15, // Keep same zoom temporarily
+              duration: 1000,
+              essential: true,
+              pitch: 60,
+              bearing: 180, // Full rotation
+              curve: 1.5
+            });
+
+            // Then zoom in with maximum effect
+            setTimeout(() => {
+              mapRef.flyTo({
+                center: [doctor.location.lng, doctor.location.lat],
+                zoom: 20,
+                duration: 2000,
+                essential: true,
+                pitch: 75, // Extreme tilt
+                bearing: 0, // Return to north
+                curve: 1.5
+              });
+            }, 1000);
+          }, 2000);
+        }, 2000);
+      }, 2000);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-headings font-bold mb-6">Find a Doctor</h1>
@@ -101,48 +177,54 @@ export default function FindDoctorPage() {
         <Card className="shadow-sm">
           <CardContent className="p-4 md:p-6">
             <h3 className="text-lg font-semibold mb-4">Doctor Locations</h3>
-            <div className="relative w-full" style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}>
+            <div className="relative w-full" style={{ height: 'calc(100vh - 300px)', minHeight: '400px' }}>
               <DoctorMap 
                 doctors={filteredDoctors} 
                 selectedDoctor={mapSelectedDoctor}
-                onDoctorSelect={(doctor) => {
-                  setMapSelectedDoctor(doctor);
-                  // Scroll to the doctor in the list
-                  const element = document.getElementById(`doctor-${doctor.id}`);
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                }}
+                onDoctorSelect={handleDoctorClick}
+                onMapReady={setMapRef}
               />
             </div>
           </CardContent>
         </Card>
       </div>
-      
+
       <Tabs defaultValue="all" value={activeSpecialty} onValueChange={setActiveSpecialty}>
         <div className="flex items-center mb-6">
-          {/* <TabsList>
+          <TabsList>
             <TabsTrigger value="all">All Specialties</TabsTrigger>
             <TabsTrigger value="Primary Care">Primary Care</TabsTrigger>
             <TabsTrigger value="Cardiology">Cardiology</TabsTrigger>
             <TabsTrigger value="Mental Health">Mental Health</TabsTrigger>
-          </TabsList> */}
+          </TabsList>
         </div>
         
         <TabsContent value="all">
-          <DoctorListing specialty="all" />
+          <DoctorListing 
+            specialty="all" 
+            onShowOnMap={handleDoctorClick}
+          />
         </TabsContent>
         
         <TabsContent value="Primary Care">
-          <DoctorListing specialty="Primary Care" />
+          <DoctorListing 
+            specialty="Primary Care" 
+            onShowOnMap={handleDoctorClick}
+          />
         </TabsContent>
         
         <TabsContent value="Cardiology">
-          <DoctorListing specialty="Cardiology" />
+          <DoctorListing 
+            specialty="Cardiology" 
+            onShowOnMap={handleDoctorClick}
+          />
         </TabsContent>
         
         <TabsContent value="Mental Health">
-          <DoctorListing specialty="Mental Health" />
+          <DoctorListing 
+            specialty="Mental Health" 
+            onShowOnMap={handleDoctorClick}
+          />
         </TabsContent>
       </Tabs>
     </div>
