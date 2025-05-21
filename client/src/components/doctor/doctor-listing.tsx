@@ -19,6 +19,10 @@ import {
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
 
+interface DoctorListingProps {
+  specialty?: string;
+}
+
 // Transform API doctor data to match our expected format
 const transformDoctorData = (apiDoctor: any): Doctor => {
   return {
@@ -48,7 +52,7 @@ const transformDoctorData = (apiDoctor: any): Doctor => {
   };
 };
 
-export function DoctorListing() {
+export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   
@@ -87,6 +91,10 @@ export function DoctorListing() {
 
   // Filter doctors based on search term and filters
   const filteredDoctors = doctors?.filter(doctor => {
+    // Specialty filter from props
+    const matchesSpecialty = specialty === 'all' || 
+      doctor.specialty.toLowerCase().includes(specialty.toLowerCase());
+    
     // Search term filter (searches name or specialty)
     const matchesSearch = searchTerm === '' ||
       doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,7 +109,7 @@ export function DoctorListing() {
       (ratingFilter === '4+' && doctor.rating >= 4) ||
       (ratingFilter === '3+' && doctor.rating >= 3);
     
-    return matchesSearch && matchesLocation && matchesRating;
+    return matchesSpecialty && matchesSearch && matchesLocation && matchesRating;
   }) || [];
 
   // Sort the filtered doctors
