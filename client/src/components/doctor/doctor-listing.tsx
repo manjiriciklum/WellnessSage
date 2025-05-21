@@ -294,7 +294,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
             <div className="flex-1 space-y-2">
               <div className="text-sm font-medium">Filters</div>
               <div className="flex flex-wrap gap-3">
-                <div className="w-full sm:w-auto">
+                <div className="w-full sm:w-[300px]">
                   <Input 
                     placeholder="Search by name or specialty"
                     value={searchTerm}

@@ -181,15 +181,24 @@ export default function FindDoctorPage() {
             
             <h3 className="text-lg font-semibold mb-4">Doctor Locations</h3>
             <div className="relative w-full" style={{ height: '400px', position: 'relative' }} id="map-cont">
-            {mapSelectedDoctor && (
-              <div className="mb-4" style={{ height: '100px', width: '200px', position: 'absolute', left: '10px', top: '40px' }}>
-                <DoctorInfoCard
-                  doctor={mapSelectedDoctor}
-                  onShowOnMap={handleDoctorClick}
-                  isSelected={true}
-                />
-              </div>
-            )}
+              {mapSelectedDoctor && (
+                <div 
+                  className="absolute z-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg transition-all duration-300"
+                  style={{ 
+                    width: '300px',
+                    left: '0px',
+                    top: '180px',
+                    maxHeight: 'calc(100% - 40px)',
+                    overflow: 'auto'
+                  }}
+                >
+                  <DoctorInfoCard
+                    doctor={mapSelectedDoctor}
+                    onShowOnMap={handleDoctorClick}
+                    isSelected={true}
+                  />
+                </div>
+              )}
               <DoctorMap 
                 doctors={filteredDoctors} 
                 selectedDoctor={mapSelectedDoctor}
