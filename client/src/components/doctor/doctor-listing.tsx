@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { StarRating } from '@/components/ui/star-rating';
 import { type Doctor } from '@/types/doctor';
-import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown } from 'lucide-react';
+import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, X } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Link } from 'wouter';
 import {
@@ -15,6 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { format, addDays, isBefore, startOfDay } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
@@ -67,6 +81,20 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
   // Sorting state
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  // Dialog states
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedReason, setSelectedReason] = useState<string>('');
+  const [showTimeSlots, setShowTimeSlots] = useState(false);
+  const [appointmentNotes, setAppointmentNotes] = useState('');
+
+  // Add state for controlling calendar popup
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { data: apiDoctors, isLoading } = useQuery<any[]>({
     queryKey: ['/api/doctors'],
@@ -160,6 +188,74 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
   const formatLocation = (doctor: Doctor) => {
     const parts = [doctor.area, doctor.city, doctor.state].filter(Boolean);
     return parts.join(', ') || 'Location not specified';
+  };
+
+  // Handle booking appointment
+  const handleBookAppointment = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsBookingDialogOpen(true);
+  };
+
+  // Handle view profile
+  const handleViewProfile = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsProfileDialogOpen(true);
+  };
+
+  // Handle appointment submission
+  const handleAppointmentSubmit = async () => {
+    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason) return;
+
+    try {
+      // TODO: Implement appointment booking logic
+      console.log('Booking appointment:', {
+        doctorId: selectedDoctor.id,
+        date: selectedDate,
+        timeSlot: selectedTimeSlot,
+        location: selectedLocation,
+        reason: selectedReason
+      });
+
+      // Close dialog and reset form
+      setIsBookingDialogOpen(false);
+      setSelectedDate(new Date());
+      setSelectedTimeSlot('');
+      setSelectedLocation('');
+      setSelectedReason('');
+      setShowTimeSlots(false);
+      setSelectedDoctor(null);
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+    }
+  };
+
+  // Add these helper functions
+  const getAvailableTimeSlots = (doctor: Doctor, date: Date): string[] => {
+    // TODO: Replace with actual availability check from doctor's schedule
+    // For now, return some sample slots
+    return [
+      '09:00 AM',
+      '10:30 AM',
+      '02:00 PM',
+      '03:30 PM',
+      '04:00 PM'
+    ];
+  };
+
+  const getDoctorLocations = (doctor: Doctor) => {
+    // TODO: Replace with actual locations from doctor's data
+    return [
+      { id: 'main', name: `${doctor.name}'s Main Clinic - ${formatLocation(doctor)}` },
+      { id: 'satellite', name: `${doctor.name}'s Satellite Clinic - ${doctor.area}` }
+    ];
+  };
+
+  // Update the date selection handler
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedTimeSlot(''); // Reset time slot when date changes
+    setShowTimeSlots(true);
+    setIsCalendarOpen(false); // Close the calendar popup
   };
 
   return (
@@ -299,10 +395,19 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
                           </p>
                         </div>
                         <div className="flex gap-2 mt-4 md:mt-0">
-                          <Button size="sm" className="text-xs md:text-sm">
+                          <Button 
+                            size="sm" 
+                            className="text-xs md:text-sm"
+                            onClick={() => handleBookAppointment(doctor)}
+                          >
                             Book Appointment
                           </Button>
-                          <Button variant="outline" size="sm" className="text-xs md:text-sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs md:text-sm"
+                            onClick={() => handleViewProfile(doctor)}
+                          >
                             <Eye size={16} className="mr-1" />
                             View Profile
                           </Button>
@@ -365,6 +470,211 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Booking Dialog */}
+      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Book Appointment</DialogTitle>
+            <DialogDescription>
+              Schedule an appointment with Dr. {selectedDoctor?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Date Selection */}
+            <div className="grid gap-2">
+              <Label>Select Date</Label>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    disabled={(date) => {
+                      // Disable past dates
+                      return isBefore(date, startOfDay(new Date()));
+                    }}
+                    modifiers={{
+                      available: (date) => {
+                        // TODO: Replace with actual availability check
+                        // For now, just enable dates from tomorrow
+                        return !isBefore(date, startOfDay(addDays(new Date(), 1)));
+                      }
+                    }}
+                    modifiersStyles={{
+                      available: {
+                        fontWeight: 'bold',
+                        color: 'var(--primary)',
+                        textDecoration: 'underline'
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Time Slots - Only show after date selection */}
+            {showTimeSlots && selectedDate && (
+              <div className="grid gap-2">
+                <Label>Available Time Slots</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedDoctor && getAvailableTimeSlots(selectedDoctor, selectedDate).map((slot) => (
+                    <Button
+                      key={slot}
+                      variant={selectedTimeSlot === slot ? "default" : "outline"}
+                      className="w-full"
+                      onClick={() => setSelectedTimeSlot(slot)}
+                    >
+                      {slot}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Location Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="location">Select Location</Label>
+              <Select 
+                value={selectedLocation} 
+                onValueChange={setSelectedLocation}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedDoctor && getDoctorLocations(selectedDoctor).map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Reason/Symptoms Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="reason">Reason for Visit</Label>
+              <Select 
+                value={selectedReason} 
+                onValueChange={setSelectedReason}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason for visit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General Checkup</SelectItem>
+                  <SelectItem value="followup">Follow-up Visit</SelectItem>
+                  <SelectItem value="consultation">New Consultation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAppointmentSubmit}
+              disabled={!selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason}
+            >
+              Confirm Booking
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Dialog */}
+      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Doctor Profile</DialogTitle>
+            <DialogDescription>
+              Detailed information about Dr. {selectedDoctor?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedDoctor && (
+            <div className="grid gap-6 py-4">
+              <div className="flex items-start gap-4">
+                <Avatar className="w-20 h-20">
+                  <AvatarImage src={selectedDoctor.imageUrl || ''} alt={selectedDoctor.name} />
+                  <AvatarFallback>{selectedDoctor.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedDoctor.name}</h3>
+                  <p className="text-sm text-neutral-500">{selectedDoctor.specialty}</p>
+                  <div className="flex items-center mt-1">
+                    <StarRating value={selectedDoctor.rating} showValue={true} reviewCount={selectedDoctor.reviews.length} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">About</h4>
+                  <p className="text-sm text-neutral-600">{selectedDoctor.description}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Experience</h4>
+                  <p className="text-sm text-neutral-600">{selectedDoctor.experience} years of experience</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Education</h4>
+                  <ul className="list-disc list-inside text-sm text-neutral-600">
+                    {selectedDoctor.education.map((edu, index) => (
+                      <li key={index}>{edu}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Languages</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDoctor.languages.map((lang, index) => (
+                      <span key={index} className="px-2 py-1 bg-neutral-100 rounded-full text-sm">
+                        {lang}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Location</h4>
+                  <p className="text-sm text-neutral-600">
+                    {formatLocation(selectedDoctor)}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Consultation Fee</h4>
+                  <p className="text-sm text-neutral-600">₹{selectedDoctor.consultationFee}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={() => setIsProfileDialogOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
