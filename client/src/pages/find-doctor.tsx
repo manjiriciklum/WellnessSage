@@ -31,6 +31,7 @@ import { format, addDays, isBefore, startOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { DoctorInfoCard } from '@/components/doctor/doctor-info-card';
 
 // Helper function to format location
 const formatLocation = (doctor: Doctor): string => {
@@ -173,11 +174,22 @@ export default function FindDoctorPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-headings font-bold mb-6">Find a Doctor</h1>
       
-      <div className="grid grid-cols-1 gap-6 mb-8">       
+      <div className="grid grid-cols-1 gap-6 mb-8">
+        {/* Map Section */}
         <Card className="shadow-sm">
           <CardContent className="p-4 md:p-6">
+            
             <h3 className="text-lg font-semibold mb-4">Doctor Locations</h3>
-            <div className="relative w-full" style={{ height: 'calc(100vh - 300px)', minHeight: '400px' }}>
+            <div className="relative w-full" style={{ height: '400px', position: 'relative' }} id="map-cont">
+            {mapSelectedDoctor && (
+              <div className="mb-4" style={{ height: '100px', width: '200px', position: 'absolute', left: '10px', top: '40px' }}>
+                <DoctorInfoCard
+                  doctor={mapSelectedDoctor}
+                  onShowOnMap={handleDoctorClick}
+                  isSelected={true}
+                />
+              </div>
+            )}
               <DoctorMap 
                 doctors={filteredDoctors} 
                 selectedDoctor={mapSelectedDoctor}
@@ -189,6 +201,7 @@ export default function FindDoctorPage() {
         </Card>
       </div>
 
+      {/* Rest of the content */}
       <Tabs defaultValue="all" value={activeSpecialty} onValueChange={setActiveSpecialty}>
         <div className="flex items-center mb-6">
           <TabsList>
