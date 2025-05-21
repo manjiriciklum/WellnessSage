@@ -1652,6 +1652,115 @@ export class MongoStorage implements IStorage {
       throw error;
     }
   }
+
+  // Appointment methods
+  async create(collection: string, data: any): Promise<any> {
+    try {
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return null;
+      }
+
+      logMongoDBAccess(0, 'create', collection);
+      // Convert collection name to proper case and remove 's' at the end (e.g., 'appointments' -> 'Appointment')
+      const modelName = collection.charAt(0).toUpperCase() + collection.slice(1, -1);
+      const model = models[modelName];
+      if (!model) {
+        throw new Error(`Model not found for collection: ${collection} (tried model name: ${modelName})`);
+      }
+
+      const document = new model(data);
+      await document.save();
+      return document;
+    } catch (error) {
+      console.error(`Error creating document in ${collection}:`, error);
+      throw error;
+    }
+  }
+
+  async find(collection: string, query: any): Promise<any[]> {
+    try {
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return [];
+      }
+
+      logMongoDBAccess(0, 'view', collection);
+      const model = models[collection.charAt(0).toUpperCase() + collection.slice(1)];
+      if (!model) {
+        throw new Error(`Model not found for collection: ${collection}`);
+      }
+
+      const documents = await model.find(query);
+      return documents;
+    } catch (error) {
+      console.error(`Error finding documents in ${collection}:`, error);
+      throw error;
+    }
+  }
+
+  async findById(collection: string, id: string): Promise<any> {
+    try {
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return null;
+      }
+
+      logMongoDBAccess(0, 'view', collection);
+      const model = models[collection.charAt(0).toUpperCase() + collection.slice(1)];
+      if (!model) {
+        throw new Error(`Model not found for collection: ${collection}`);
+      }
+
+      const document = await model.findById(id);
+      return document;
+    } catch (error) {
+      console.error(`Error finding document by ID in ${collection}:`, error);
+      throw error;
+    }
+  }
+
+  async update(collection: string, id: string, data: any): Promise<any> {
+    try {
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return null;
+      }
+
+      logMongoDBAccess(0, 'update', collection);
+      const model = models[collection.charAt(0).toUpperCase() + collection.slice(1)];
+      if (!model) {
+        throw new Error(`Model not found for collection: ${collection}`);
+      }
+
+      const document = await model.findByIdAndUpdate(id, data, { new: true });
+      return document;
+    } catch (error) {
+      console.error(`Error updating document in ${collection}:`, error);
+      throw error;
+    }
+  }
+
+  async delete(collection: string, id: string): Promise<boolean> {
+    try {
+      if (!isConnected()) {
+        console.log('MongoDB not connected, falling back to memory storage');
+        return false;
+      }
+
+      logMongoDBAccess(0, 'delete', collection);
+      const model = models[collection.charAt(0).toUpperCase() + collection.slice(1)];
+      if (!model) {
+        throw new Error(`Model not found for collection: ${collection}`);
+      }
+
+      const result = await model.findByIdAndDelete(id);
+      return !!result;
+    } catch (error) {
+      console.error(`Error deleting document in ${collection}:`, error);
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance

@@ -152,6 +152,19 @@ export interface IChatMessage extends Document {
   timestamp: Date;
 }
 
+// Appointment Interface
+export interface IAppointment extends Document {
+  doctorId: string;
+  patientId: string;
+  date: Date;
+  timeSlot: string;
+  location: string;
+  reason: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Define schemas
 const UserSchema = new Schema<IUser>({
   username: { type: String, required: true, unique: true },
@@ -297,6 +310,18 @@ const ChatMessageSchema = new Schema<IChatMessage>({
   timestamp: { type: Date, default: Date.now }
 });
 
+const AppointmentSchema = new Schema<IAppointment>({
+  doctorId: { type: String, required: true },
+  patientId: { type: String, required: true },
+  date: { type: Date, required: true },
+  timeSlot: { type: String, required: true },
+  location: { type: String, required: true },
+  reason: { type: String, required: true },
+  status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
 // Create and export models
 const models = {
   User: mongoose.models.User || mongoose.model<IUser>('User', UserSchema),
@@ -308,7 +333,8 @@ const models = {
   Goal: mongoose.models.Goal || mongoose.model<IGoal>('Goal', GoalSchema),
   AIInsight: mongoose.models.AIInsight || mongoose.model<IAIInsight>('AIInsight', AIInsightSchema),
   HealthConsultation: mongoose.models.HealthConsultation || mongoose.model<IHealthConsultation>('HealthConsultation', HealthConsultationSchema),
-  ChatMessage: mongoose.models.ChatMessage || mongoose.model<IChatMessage>('ChatMessage', ChatMessageSchema)
+  ChatMessage: mongoose.models.ChatMessage || mongoose.model<IChatMessage>('ChatMessage', ChatMessageSchema),
+  Appointment: mongoose.models.Appointment || mongoose.model<IAppointment>('Appointment', AppointmentSchema)
 };
 
 export default models;

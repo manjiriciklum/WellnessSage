@@ -29,6 +29,7 @@ import { format, addDays, isBefore, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
 
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
@@ -203,17 +204,37 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
   };
 
   // Handle appointment submission
+  const { toast } = useToast();
+
   const handleAppointmentSubmit = async () => {
     if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason) return;
 
     try {
-      // TODO: Implement appointment booking logic
-      console.log('Booking appointment:', {
-        doctorId: selectedDoctor.id,
-        date: selectedDate,
-        timeSlot: selectedTimeSlot,
-        location: selectedLocation,
-        reason: selectedReason
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          doctorId: selectedDoctor.id,
+          date: selectedDate.toISOString(),
+          timeSlot: selectedTimeSlot,
+          location: selectedLocation,
+          reason: selectedReason,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to book appointment');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Appointment Booked",
+        description: `Your appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
       });
 
       // Close dialog and reset form
@@ -226,6 +247,11 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
       setSelectedDoctor(null);
     } catch (error) {
       console.error('Error booking appointment:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to book appointment. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
