@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mapbox styles */
+.mapboxgl-popup-content {
+  @apply rounded-lg shadow-lg border border-neutral-200 bg-white;
+}
+
+.mapboxgl-popup-close-button {
+  @apply p-2 text-neutral-500 hover:text-neutral-700;
+}
+
+.mapboxgl-ctrl-group {
+  @apply rounded-lg shadow-lg border border-neutral-200 overflow-hidden bg-white;
+}
+
+.mapboxgl-ctrl-group button {
+  @apply w-8 h-8 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100;
+}
+
+.mapboxgl-ctrl-group button + button {
+  @apply border-t border-neutral-200;
+}
+
+.mapboxgl-ctrl-attrib {
+  @apply bg-white/90 text-xs text-neutral-600;
+}
+
+.mapboxgl-ctrl-attrib a {
+  @apply text-primary hover:text-primary-dark;
+}
+
+.doctor-popup {
+  @apply shadow-lg rounded-lg border border-neutral-200;
+}
+
+.doctor-popup .mapboxgl-popup-content {
+  @apply p-0;
+}
+
+.doctor-popup .mapboxgl-popup-tip {
+  @apply border-neutral-200;
+}
+
+/* Responsive map container */
+@media (max-width: 640px) {
+  .mapboxgl-ctrl-group {
+    @apply scale-90;
+  }
+  
+  .mapboxgl-ctrl-attrib {
+    @apply text-[10px];
+  }
+}
+
+/* ... existing styles ... */ 

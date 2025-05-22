@@ -4,9 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { StarRating } from '@/components/ui/star-rating';
-import { type Doctor } from '@shared/schema';
-import { Search, Eye, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { type Doctor } from '@/types/doctor';
+import { Search, MapPin, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, X, Navigation } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Link } from 'wouter';
 import {
   Select,
   SelectContent,
@@ -14,66 +15,119 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-interface DoctorListingProps {
-  specialty?: string;
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { format, addDays, isBefore, startOfDay } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
+import { BookingDialog } from '@/components/appointments/booking-dialog';
+import { DoctorProfileDialog } from './doctor-profile-dialog';
 
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
 
-export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
-  const { data: doctors, isLoading } = useQuery<Doctor[]>({
-    queryKey: ['/api/doctors'],
-  });
+interface DoctorListingProps {
+  specialty?: string;
+  onShowOnMap?: (doctor: Doctor) => void;
+}
+
+const API_URL = 'http://localhost:5000/api';
+
+export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [location, setLocation] = useState('');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   
   // Filtering state
-  const [searchTerm, setSearchTerm] = useState('');
   const [practiceFilter, setPracticeFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
   
   // Sorting state
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  
-  // Filter doctors by specialty first
-  const specialtyFilteredDoctors = specialty === 'all' ? 
-    doctors : 
-    doctors?.filter(doctor => doctor.specialty.toLowerCase().includes(specialty.toLowerCase()));
-  
-  // Apply additional filters
-  const filteredDoctors = specialtyFilteredDoctors?.filter(doctor => {
-    // Search term filter (searches name or specialty)
-    const matchesSearch = searchTerm === '' ||
-      `${doctor.firstName} ${doctor.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
+
+  // Dialog states
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedReason, setSelectedReason] = useState<string>('');
+  const [showTimeSlots, setShowTimeSlots] = useState(false);
+  const [appointmentNotes, setAppointmentNotes] = useState('');
+
+  // Add state for controlling calendar popup
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  const { data: doctors, isLoading } = useQuery<Doctor[]>({
+    queryKey: ['doctors'],
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/doctors`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch doctors');
+      }
+      const data = await response.json();
+      return data as Doctor[];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Get unique locations for filter dropdown - only include locations with doctors
+  const locations = Array.from(
+    new Set(
+      doctors?.filter(doctor => doctor.area && doctor.city) // Only include doctors with both area and city
+        .map(doctor => doctor.area)
+        .filter(Boolean) // Remove any null/undefined values
+    )
+  ).sort(); // Sort alphabetically
+
+  // Filter doctors based on search term and filters
+  const filteredDoctors = doctors?.filter(doctor => {
+    // Specialty filter from props
+    const matchesSpecialty = specialty === 'all' || 
+      doctor.specialty.toLowerCase().includes(specialty.toLowerCase());
     
-    // Practice filter
-    const matchesPractice = practiceFilter === 'all' ||
-      doctor.practice.toLowerCase() === practiceFilter.toLowerCase();
+    // Search term filter (searches name or specialty)
+    const matchesSearch = searchQuery === '' ||
+      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Location filter
+    const matchesLocation = practiceFilter === 'all' ||
+      doctor.area.toLowerCase() === practiceFilter.toLowerCase();
     
     // Rating filter
     const matchesRating = ratingFilter === 'all' ||
-      (ratingFilter === '4+' && (doctor.rating || 0) >= 4) ||
-      (ratingFilter === '3+' && (doctor.rating || 0) >= 3);
+      (ratingFilter === '4+' && doctor.rating >= 4) ||
+      (ratingFilter === '3+' && doctor.rating >= 3);
     
-    return matchesSearch && matchesPractice && matchesRating;
-  });
-  
+    return matchesSpecialty && matchesSearch && matchesLocation && matchesRating;
+  }) || [];
+
   // Sort the filtered doctors
-  const sortedDoctors = [...(filteredDoctors || [])].sort((a, b) => {
+  const sortedDoctors = [...filteredDoctors].sort((a, b) => {
     if (sortField === 'name') {
-      const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-      const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-      return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+      return sortOrder === 'asc' 
+        ? a.name.localeCompare(b.name) 
+        : b.name.localeCompare(a.name);
     } else if (sortField === 'rating') {
-      const ratingA = a.rating || 0;
-      const ratingB = b.rating || 0;
-      return sortOrder === 'asc' ? ratingA - ratingB : ratingB - ratingA;
+      return sortOrder === 'asc' 
+        ? a.rating - b.rating 
+        : b.rating - a.rating;
     } else if (sortField === 'specialty') {
       return sortOrder === 'asc' 
         ? a.specialty.localeCompare(b.specialty) 
@@ -81,26 +135,23 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
     }
     return 0;
   });
-  
-  // Get unique practice locations for filter dropdown
-  const practices = Array.from(new Set(doctors?.map(doctor => doctor.practice) || []));
-  
+
   // Calculate pagination
-  const totalPages = Math.ceil((sortedDoctors?.length || 0) / itemsPerPage);
+  const totalPages = Math.ceil(sortedDoctors.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentDoctors = sortedDoctors?.slice(indexOfFirstItem, indexOfLastItem) || [];
-  
+  const currentDoctors = sortedDoctors.slice(indexOfFirstItem, indexOfLastItem);
+
   // Handle page changes
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages || 1)));
   };
-  
+
   const goToFirstPage = () => goToPage(1);
   const goToPreviousPage = () => goToPage(currentPage - 1);
   const goToNextPage = () => goToPage(currentPage + 1);
   const goToLastPage = () => goToPage(totalPages || 1);
-  
+
   // Toggle sort order or change sort field
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -111,32 +162,138 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
     }
   };
 
+  // Format location for display
+  const formatLocation = (doctor: Doctor) => {
+    const parts = [doctor.area, doctor.city, doctor.state].filter(Boolean);
+    return parts.join(', ') || 'Location not specified';
+  };
+
+  // Handle booking appointment
+  const handleBookAppointment = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsBookingDialogOpen(true);
+  };
+
+  // Handle view profile
+  const handleViewProfile = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsProfileDialogOpen(true);
+  };
+
+  // Handle appointment submission
+  const { toast } = useToast();
+
+  const handleAppointmentSubmit = async () => {
+    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason) return;
+
+    try {
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          doctorId: selectedDoctor.id,
+          date: selectedDate.toISOString(),
+          timeSlot: selectedTimeSlot,
+          location: selectedLocation,
+          reason: selectedReason,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to book appointment');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Appointment Booked",
+        description: `Your appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
+      });
+
+      // Close dialog and reset form
+      setIsBookingDialogOpen(false);
+      setSelectedDate(new Date());
+      setSelectedTimeSlot('');
+      setSelectedLocation('');
+      setSelectedReason('');
+      setShowTimeSlots(false);
+      setSelectedDoctor(null);
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to book appointment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Add these helper functions
+  const getAvailableTimeSlots = (doctor: Doctor, date: Date): string[] => {
+    // TODO: Replace with actual availability check from doctor's schedule
+    // For now, return some sample slots
+    return [
+      '09:00 AM',
+      '10:30 AM',
+      '02:00 PM',
+      '03:30 PM',
+      '04:00 PM'
+    ];
+  };
+
+  const getDoctorLocations = (doctor: Doctor) => {
+    // TODO: Replace with actual locations from doctor's data
+    return [
+      { id: 'main', name: `${doctor.name}'s Main Clinic - ${formatLocation(doctor)}` },
+      { id: 'satellite', name: `${doctor.name}'s Satellite Clinic - ${doctor.area}` }
+    ];
+  };
+
+  // Update the date selection handler
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedTimeSlot(''); // Reset time slot when date changes
+    setShowTimeSlots(true);
+    setIsCalendarOpen(false); // Close the calendar popup
+  };
+
+  if (isLoading) {
+    return <div>Loading doctors...</div>;
+  }
+
   return (
     <div className="space-y-4">
-      <Card className="shadow-sm">
+      <Card className="shadow-sm mb-6">
         <CardContent className="p-5">
           <div className="flex flex-wrap gap-4 items-end">
             {/* Filter controls */}
             <div className="flex-1 space-y-2">
               <div className="text-sm font-medium">Filters</div>
               <div className="flex flex-wrap gap-3">
-                <div className="w-full sm:w-auto">
-                  <Input
+                <div className="w-full sm:w-[300px]">
+                  <Input 
                     placeholder="Search by name or specialty"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="w-full"
                   />
                 </div>
                 
                 <Select value={practiceFilter} onValueChange={setPracticeFilter}>
                   <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Practice Location" />
+                    <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Locations</SelectItem>
-                    {practices.map((practice) => (
-                      <SelectItem key={practice} value={practice}>{practice}</SelectItem>
+                    {locations.map((location) => (
+                      <SelectItem key={location} value={location}>{location}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -200,9 +357,9 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card className="shadow-sm">
-        <CardContent className="p-5">
+        <CardContent className="p-6">
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -211,100 +368,143 @@ export function DoctorListing({ specialty = 'all' }: DoctorListingProps) {
                 </div>
               ))}
             </div>
-          ) : currentDoctors.length === 0 ? (
+          ) : filteredDoctors.length === 0 ? (
             <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
-              No doctors found matching your criteria.
+              No doctors found matching your search criteria.
             </div>
           ) : (
             <>
               {currentDoctors.map((doctor) => (
-                <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <Card key={doctor.id} className="p-4">
+                  <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
-                      <AvatarImage src={doctor.profileImage || ''} alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} />
-                      {/* <AvatarFallback>{doctor.firstName[0]}{doctor.lastName[0]}</AvatarFallback> */}
+                      <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
+                      <AvatarFallback>{doctor.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="text-md font-medium text-neutral-800 dark:text-white">
-                        Dr. {doctor.firstName} {doctor.lastName}
-                      </h3>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-300">
-                        {doctor.specialty} • {doctor.practice}
-                      </p>
-                      <div className="flex items-center mt-1">
-                        <StarRating 
-                          value={doctor.rating || 0} 
-                          showValue={true}
-                          reviewCount={doctor.reviewCount || undefined}
-                        />
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <h3 className="text-lg font-medium text-neutral-800 dark:text-white">
+                            {doctor.name}
+                          </h3>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-300">
+                            {doctor.specialty} • {formatLocation(doctor)}
+                          </p>
+                          <div className="flex items-center mt-1">
+                            <StarRating 
+                              value={doctor.rating} 
+                              showValue={true}
+                              reviewCount={doctor.reviews?.length || 0}
+                            />
+                          </div>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
+                            Experience: {doctor.experience} years • Fee: ₹{doctor.consultationFee}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 mt-4 md:mt-0">
+                          <Button 
+                            size="sm" 
+                            className="text-xs md:text-sm"
+                            onClick={() => handleBookAppointment(doctor)}
+                          >
+                            Book Appointment
+                          </Button>
+                          {onShowOnMap && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-xs md:text-sm"
+                              onClick={() => onShowOnMap(doctor)}
+                            >
+                              <Navigation size={16} className="mr-1" />
+                              Show on Map
+                            </Button>
+                          )}
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="text-xs md:text-sm"
+                            onClick={() => handleViewProfile(doctor)}
+                          >
+                            View Profile
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button>
-                        Book Appointment
-                      </Button>
-                      <Button variant="outline" size="icon">
-                        <Eye size={18} />
-                      </Button>
-                    </div>
                   </div>
-                </div>
+                </Card>
               ))}
               
               {/* Pagination controls */}
-              {sortedDoctors.length > 0 && (
-                <div className="flex justify-between items-center mt-6">
-                  <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedDoctors.length)} of {sortedDoctors.length} doctors
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredDoctors.length)} of {filteredDoctors.length} doctors
+                </div>
+                
+                <div className="flex gap-1">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToFirstPage} 
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft size={16} />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToPreviousPage} 
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft size={16} />
+                  </Button>
+                  
+                  <div className="flex items-center px-4">
+                    <span className="text-sm">
+                      Page {currentPage} of {totalPages}
+                    </span>
                   </div>
                   
-                  <div className="flex gap-1">
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={goToFirstPage} 
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronsLeft size={16} />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={goToPreviousPage} 
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft size={16} />
-                    </Button>
-                    
-                    <div className="flex items-center px-4">
-                      <span className="text-sm">
-                        Page {currentPage} of {totalPages}
-                      </span>
-                    </div>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={goToNextPage} 
-                      disabled={currentPage === totalPages || totalPages === 0}
-                    >
-                      <ChevronRight size={16} />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={goToLastPage} 
-                      disabled={currentPage === totalPages || totalPages === 0}
-                    >
-                      <ChevronsRight size={16} />
-                    </Button>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToNextPage} 
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >
+                    <ChevronRight size={16} />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={goToLastPage} 
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >
+                    <ChevronsRight size={16} />
+                  </Button>
                 </div>
-              )}
+              </div>
             </>
           )}
         </CardContent>
       </Card>
+
+      <DoctorProfileDialog
+        doctor={selectedDoctor}
+        isOpen={isProfileDialogOpen}
+        onClose={() => {
+          setIsProfileDialogOpen(false);
+          setSelectedDoctor(null);
+        }}
+      />
+
+      <BookingDialog
+        doctor={selectedDoctor}
+        isOpen={isBookingDialogOpen}
+        onClose={() => {
+          setIsBookingDialogOpen(false);
+          setSelectedDoctor(null);
+        }}
+      />
     </div>
   );
 }

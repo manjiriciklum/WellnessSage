@@ -61,14 +61,37 @@ export interface IWellnessPlan extends Document {
 
 // Doctor Interface
 export interface IDoctor extends Document {
-  firstName: string;
-  lastName: string;
+  id: string;
+  name: string;
   specialty: string;
-  practice: string;
-  location: string;
+  address: string;
+  area: string;
+  city: string;
+  state: string;
+  country: string;
   rating: number;
-  reviewCount: number;
-  profileImage: string;
+  experience: number;
+  languages: string[];
+  education: string[];
+  available: boolean;
+  consultationFee: number;
+  imageUrl: string;
+  gender: string;
+  description: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  reviews: any[];
+  availability: {
+    [key: string]: {
+      morning: boolean;
+      afternoon: boolean;
+      evening: boolean;
+    };
+  };
+  vector_text: string;
+  symptoms: string[];
   createdAt: Date;
 }
 
@@ -129,6 +152,19 @@ export interface IChatMessage extends Document {
   timestamp: Date;
 }
 
+// Appointment Interface
+export interface IAppointment extends Document {
+  doctorId: string;
+  patientId: string;
+  date: Date;
+  timeSlot: string;
+  location: string;
+  reason: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Define schemas
 const UserSchema = new Schema<IUser>({
   username: { type: String, required: true, unique: true },
@@ -186,14 +222,39 @@ const WellnessPlanSchema = new Schema<IWellnessPlan>({
 });
 
 const DoctorSchema = new Schema<IDoctor>({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
   specialty: { type: String, required: true },
-  practice: { type: String, required: true },
-  location: { type: String, required: true },
+  address: { type: String, required: true },
+  area: { type: String, required: true },
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  country: { type: String, required: true },
   rating: { type: Number, required: true },
-  reviewCount: { type: Number, default: 0 },
-  profileImage: { type: String, required: true },
+  experience: { type: Number, required: true },
+  languages: { type: [String], required: true },
+  education: { type: [String], required: true },
+  available: { type: Boolean, default: true },
+  consultationFee: { type: Number, required: true },
+  imageUrl: { type: String, default: '' },
+  gender: { type: String, required: true },
+  description: { type: String, required: true },
+  location: {
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true }
+  },
+  reviews: { type: [Schema.Types.Mixed], default: [] },
+  availability: {
+    type: Map,
+    of: {
+      morning: { type: Boolean, default: false },
+      afternoon: { type: Boolean, default: false },
+      evening: { type: Boolean, default: false }
+    },
+    default: {}
+  },
+  vector_text: { type: String, required: true },
+  symptoms: { type: [String], required: true },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -249,6 +310,18 @@ const ChatMessageSchema = new Schema<IChatMessage>({
   timestamp: { type: Date, default: Date.now }
 });
 
+const AppointmentSchema = new Schema<IAppointment>({
+  doctorId: { type: String, required: true },
+  patientId: { type: String, required: true },
+  date: { type: Date, required: true },
+  timeSlot: { type: String, required: true },
+  location: { type: String, required: true },
+  reason: { type: String, required: true },
+  status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
 // Create and export models
 const models = {
   User: mongoose.models.User || mongoose.model<IUser>('User', UserSchema),
@@ -260,7 +333,8 @@ const models = {
   Goal: mongoose.models.Goal || mongoose.model<IGoal>('Goal', GoalSchema),
   AIInsight: mongoose.models.AIInsight || mongoose.model<IAIInsight>('AIInsight', AIInsightSchema),
   HealthConsultation: mongoose.models.HealthConsultation || mongoose.model<IHealthConsultation>('HealthConsultation', HealthConsultationSchema),
-  ChatMessage: mongoose.models.ChatMessage || mongoose.model<IChatMessage>('ChatMessage', ChatMessageSchema)
+  ChatMessage: mongoose.models.ChatMessage || mongoose.model<IChatMessage>('ChatMessage', ChatMessageSchema),
+  Appointment: mongoose.models.Appointment || mongoose.model<IAppointment>('Appointment', AppointmentSchema)
 };
 
 export default models;

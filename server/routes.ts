@@ -21,6 +21,7 @@ import {
 import passport from 'passport';
 import mongoose from 'mongoose';
 import { calculateHealthScore } from './utils/health-score';
+import { appointmentSchema, type Appointment } from './schemas/appointments';
 
 // Store connected clients by user ID
 const clients = new Map<string, Set<WebSocket>>();
@@ -649,24 +650,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Doctors routes
   app.get("/api/doctors", async (req, res) => {
-    const specialty = req.query.specialty as string | undefined;
-    const location = req.query.location as string | undefined;
-    
-    // Use MongoDB storage when connected, otherwise fall back to in-memory
-    const doctorStorage = isConnected() ? mongoStorage : storage;
-    
-    if (specialty && location) {
-      const doctors = await doctorStorage.getDoctorsBySpecialtyAndLocation(specialty, location);
-      return res.json(doctors);
-    } else if (specialty) {
-      const doctors = await doctorStorage.getDoctorsBySpecialty(specialty);
-      return res.json(doctors);
-    } else if (location) {
-      const doctors = await doctorStorage.getDoctorsByLocation(location);
-      return res.json(doctors);
-    } else {
-      const doctors = await doctorStorage.getAllDoctors();
-      return res.json(doctors);
+    try {
+      console.log('Fetching doctors from MongoDB...');
+      const doctors = await mongoStorage.getAllDoctors();
+      console.log('Fetched doctors:', doctors);
+      res.json(doctors);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      res.status(500).json({ error: 'Failed to fetch doctors' });
+    }
+  });
+
+  app.get('/api/doctors/specialty/:specialty', async (req, res) => {
+    try {
+      const { specialty } = req.params;
+      const doctors = await mongoStorage.getDoctorsBySpecialty(specialty);
+      res.json(doctors);
+    } catch (error) {
+      console.error('Error fetching doctors by specialty:', error);
+      res.status(500).json({ error: 'Failed to fetch doctors by specialty' });
+    }
+  });
+
+  app.get('/api/doctors/location/:location', async (req, res) => {
+    try {
+      const { location } = req.params;
+      const doctors = await mongoStorage.getDoctorsByLocation(location);
+      res.json(doctors);
+    } catch (error) {
+      console.error('Error fetching doctors by location:', error);
+      res.status(500).json({ error: 'Failed to fetch doctors by location' });
     }
   });
 
@@ -990,6 +1003,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message || 'Unknown error checking database health',
         timestamp: new Date().toISOString()
       });
+    }
+  });
+
+  // Appointments routes
+  app.post('/api/appointments', isAuthenticated, async (req, res) => {
+    try {
+      console.log('Received appointment request:', req.body);
+      console.log('User:', req.user);
+
+      // Extract the user ID from the authenticated user
+      const patientId = req.user?.id?.toString();
+      if (!patientId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const appointmentData = appointmentSchema.parse({
+        ...req.body,
+        date: new Date(req.body.date),
+        patientId // Use the string ID
+      });
+
+      console.log('Parsed appointment data:', appointmentData);
+
+      const result = await mongoStorage.create('appointments', appointmentData);
+      console.log('Created appointment:', result);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      res.status(400).json({ error: 'Failed to create appointment', details: error.message });
+    }
+  });
+
+  app.get('/api/appointments', isAuthenticated, async (req, res) => {
+    try {
+      const appointments = await mongoStorage.find('appointments', {
+        patientId: req.user?.id // Get appointments for current user
+      });
+      res.json(appointments);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      res.status(500).json({ error: 'Failed to fetch appointments' });
+    }
+  });
+
+  app.get('/api/appointments/:id', isAuthenticated, async (req, res) => {
+    try {
+      const appointment = await mongoStorage.findById('appointments', req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ error: 'Appointment not found' });
+      }
+      res.json(appointment);
+    } catch (error) {
+      console.error('Error fetching appointment:', error);
+      res.status(500).json({ error: 'Failed to fetch appointment' });
+    }
+  });
+
+  app.put('/api/appointments/:id', isAuthenticated, async (req, res) => {
+    try {
+      const appointmentData = appointmentSchema.parse({
+        ...req.body,
+        date: new Date(req.body.date),
+        updatedAt: new Date()
+      });
+
+      const result = await mongoStorage.update('appointments', req.params.id, appointmentData);
+      if (!result) {
+        return res.status(404).json({ error: 'Appointment not found' });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      res.status(400).json({ error: 'Failed to update appointment' });
+    }
+  });
+
+  app.delete('/api/appointments/:id', isAuthenticated, async (req, res) => {
+    try {
+      const result = await mongoStorage.delete('appointments', req.params.id);
+      if (!result) {
+        return res.status(404).json({ error: 'Appointment not found' });
+      }
+      res.json({ message: 'Appointment deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      res.status(500).json({ error: 'Failed to delete appointment' });
     }
   });
 
