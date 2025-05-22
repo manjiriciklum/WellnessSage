@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -8,6 +9,7 @@ import { mongoStorage } from "./db/mongo-storage";
 // Set the storage implementation to use MongoDB
 import { setStorageImplementation } from './storage';
 import cors from 'cors';
+
 
 const app = express();
 
