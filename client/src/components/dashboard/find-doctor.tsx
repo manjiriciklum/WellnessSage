@@ -62,7 +62,7 @@ const transformDoctorData = (apiDoctor: any): Doctor => {
 
 export function FindDoctor() {
   const [specialty, setSpecialty] = useState('');
-  const [location, setLocation] = useState('San Francisco, CA');
+  const [location, setLocation] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
   // Pagination state
@@ -95,12 +95,31 @@ export function FindDoctor() {
     setCurrentPage(1); // Reset to first page when changing specialty
   };
 
-  // Filter doctors based on search term and active specialty
-  const filteredDoctors = doctors?.filter(doctor => {
+  // Format location for display
+  const formatLocation = (doctor: Doctor): string => {
+    const parts = [doctor.area, doctor.city, doctor.state].filter(Boolean);
+    return parts.join(', ') || 'Location not specified';
+  };
+
+  // Filter doctors based on search term, location, and active specialty
+  const filteredDoctors = doctors?.filter((doctor: Doctor) => {
     const fullName = doctor.name.toLowerCase();
-    const matchesSearch = searchTerm === '' || fullName.includes(searchTerm.toLowerCase());
-    const matchesSpecialty = activeSpecialty === 'All' || doctor.specialty === activeSpecialty;
-    return matchesSearch && matchesSpecialty;
+    const doctorLocation = formatLocation(doctor).toLowerCase();
+    const searchLocation = location.toLowerCase();
+    
+    // Search by name
+    const matchesSearch = searchTerm === '' || 
+      fullName.includes(searchTerm.toLowerCase());
+    
+    // Search by location
+    const matchesLocation = searchLocation === '' || 
+      doctorLocation.includes(searchLocation);
+    
+    // Filter by specialty
+    const matchesSpecialty = activeSpecialty === 'All' || 
+      doctor.specialty === activeSpecialty;
+    
+    return matchesSearch && matchesLocation && matchesSpecialty;
   }) || [];
 
   // Calculate pagination
@@ -120,12 +139,6 @@ export function FindDoctor() {
   const goToPreviousPage = () => goToPage(currentPage - 1);
   const goToNextPage = () => goToPage(currentPage + 1);
   const goToLastPage = () => goToPage(totalPages || 1);
-
-  // Format location for display
-  const formatLocation = (doctor: Doctor) => {
-    const parts = [doctor.area, doctor.city, doctor.state].filter(Boolean);
-    return parts.join(', ') || 'Location not specified';
-  };
 
   // Add new state for appointment booking
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -253,12 +266,20 @@ export function FindDoctor() {
             <div className="relative flex-1 min-w-[180px]">
               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={18} />
               <Input 
+                placeholder="Search by location..."
                 value={location} 
                 className="pl-10"
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
               />
             </div>
-            <Button>
+            <Button 
+              onClick={() => {
+                setCurrentPage(1); // Reset to first page when searching
+              }}
+            >
               Search
             </Button>
           </div>
@@ -297,7 +318,7 @@ export function FindDoctor() {
             </div>
           ) : (
             <>
-              {currentDoctors.map((doctor) => (
+              {currentDoctors.map((doctor: Doctor) => (
                 <Card key={doctor.id} className="p-4">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
