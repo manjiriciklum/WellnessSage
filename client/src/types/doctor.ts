@@ -1,34 +1,36 @@
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
 export interface Doctor {
   id: string;
   name: string;
   specialty: string;
-  address: string;
+  imageUrl?: string;
+  rating: number;
+  reviews: Array<{
+    id: string;
+    rating: number;
+    comment: string;
+    patientName: string;
+    date: string;
+  }>;
+  experience: number;
+  education: string[];
+  languages: string[];
+  consultationFee: number;
+  description: string;
   area: string;
   city: string;
   state: string;
-  country: string;
-  rating: number;
-  experience: number;
-  languages: string[];
-  education: string[];
-  available: boolean;
-  consultationFee: number;
-  imageUrl: string;
-  gender: string;
-  description: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
-  reviews: any[];
+  locations: Location[];
   availability: {
-    [key: string]: {
-      morning: boolean;
-      afternoon: boolean;
-      evening: boolean;
-    };
+    days: string[];
+    timeSlots: string[];
   };
-  vector_text: string;
-  symptoms: string[];
-  createdAt: Date;
 } 

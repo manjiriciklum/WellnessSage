@@ -28,6 +28,8 @@ import { format, addDays, isBefore, startOfDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { DoctorProfileDialog } from '@/components/doctor/doctor-profile-dialog';
+import { BookingDialog } from '@/components/appointments/booking-dialog';
 
 // Transform API doctor data to match our expected format
 const transformDoctorData = (apiDoctor: any): Doctor => {
@@ -296,7 +298,7 @@ export function FindDoctor() {
           ) : (
             <>
               {currentDoctors.map((doctor) => (
-                <div key={doctor.id} className="border-b border-neutral-100 dark:border-neutral-600 py-4 first:pt-0 last:border-0 last:pb-0">
+                <Card key={doctor.id} className="p-4">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
                       <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
@@ -305,7 +307,7 @@ export function FindDoctor() {
                     <div className="flex-1">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div>
-                          <h3 className="text-md font-medium text-neutral-800 dark:text-white">
+                          <h3 className="text-lg font-medium text-neutral-800 dark:text-white">
                             {doctor.name}
                           </h3>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300">
@@ -315,7 +317,7 @@ export function FindDoctor() {
                             <StarRating 
                               value={doctor.rating} 
                               showValue={true}
-                              reviewCount={doctor.reviews.length}
+                              reviewCount={doctor.reviews?.length || 0}
                             />
                           </div>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
@@ -330,7 +332,12 @@ export function FindDoctor() {
                           >
                             Book Appointment
                           </Button>
-                          <Button variant="outline" size="sm" className="text-xs md:text-sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs md:text-sm"
+                            onClick={() => handleViewProfile(doctor)}
+                          >
                             <Eye size={16} className="mr-1" />
                             View Profile
                           </Button>
@@ -338,7 +345,7 @@ export function FindDoctor() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
               
               {/* Pagination controls */}
@@ -394,191 +401,24 @@ export function FindDoctor() {
         </CardContent>
       </Card>
 
-      {/* Add Booking Dialog */}
-      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Book Appointment</DialogTitle>
-            <DialogDescription>
-              Schedule an appointment with Dr. {selectedDoctor?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {/* Date Selection */}
-            <div className="grid gap-2">
-              <Label>Select Date</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateSelect}
-                    disabled={(date) => {
-                      return isBefore(date, startOfDay(new Date()));
-                    }}
-                    modifiers={{
-                      available: (date) => {
-                        return !isBefore(date, startOfDay(addDays(new Date(), 1)));
-                      }
-                    }}
-                    modifiersStyles={{
-                      available: {
-                        fontWeight: 'bold',
-                        color: 'var(--primary)',
-                        textDecoration: 'underline'
-                      }
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+      {/* Add the dialogs */}
+      <DoctorProfileDialog
+        doctor={selectedDoctor}
+        isOpen={isProfileDialogOpen}
+        onClose={() => {
+          setIsProfileDialogOpen(false);
+          setSelectedDoctor(null);
+        }}
+      />
 
-            {/* Time Slots */}
-            {showTimeSlots && selectedDate && (
-              <div className="grid gap-2">
-                <Label>Available Time Slots</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedDoctor && getAvailableTimeSlots(selectedDoctor, selectedDate).map((slot) => (
-                    <Button
-                      key={slot}
-                      variant={selectedTimeSlot === slot ? "default" : "outline"}
-                      className="w-full"
-                      onClick={() => setSelectedTimeSlot(slot)}
-                    >
-                      {slot}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Location Selection */}
-            <div className="grid gap-2">
-              <Label htmlFor="location">Select Location</Label>
-              <Select 
-                value={selectedLocation} 
-                onValueChange={setSelectedLocation}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedDoctor && getDoctorLocations(selectedDoctor).map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Reason Selection */}
-            <div className="grid gap-2">
-              <Label htmlFor="reason">Reason for Visit</Label>
-              <Select 
-                value={selectedReason} 
-                onValueChange={setSelectedReason}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select reason for visit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">General Checkup</SelectItem>
-                  <SelectItem value="followup">Follow-up Visit</SelectItem>
-                  <SelectItem value="consultation">New Consultation</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAppointmentSubmit}
-              disabled={!selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason}
-            >
-              Confirm Booking
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Profile Dialog */}
-      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Doctor Profile</DialogTitle>
-            <DialogDescription>
-              Detailed information about Dr. {selectedDoctor?.name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedDoctor && (
-            <div className="grid gap-4">
-              <div>
-                <h4 className="font-medium mb-2">About</h4>
-                <p className="text-sm text-neutral-600">{selectedDoctor.description}</p>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Experience</h4>
-                <p className="text-sm text-neutral-600">{selectedDoctor.experience} years of experience</p>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Education</h4>
-                <ul className="list-disc list-inside text-sm text-neutral-600">
-                  {selectedDoctor.education.map((edu, index) => (
-                    <li key={index}>{edu}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Languages</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedDoctor.languages.map((lang, index) => (
-                    <span key={index} className="px-2 py-1 bg-neutral-100 rounded-full text-sm">
-                      {lang}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Location</h4>
-                <p className="text-sm text-neutral-600">
-                  {formatLocation(selectedDoctor)}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Consultation Fee</h4>
-                <p className="text-sm text-neutral-600">₹{selectedDoctor.consultationFee}</p>
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end">
-            <Button onClick={() => setIsProfileDialogOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BookingDialog
+        doctor={selectedDoctor}
+        isOpen={isBookingDialogOpen}
+        onClose={() => {
+          setIsBookingDialogOpen(false);
+          setSelectedDoctor(null);
+        }}
+      />
     </div>
   );
 }

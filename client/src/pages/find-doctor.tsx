@@ -171,7 +171,7 @@ export default function FindDoctorPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-4 md:p-6 mx-auto">
       <h1 className="text-2xl font-headings font-bold mb-6">Find a Doctor</h1>
       
       <div className="grid grid-cols-1 gap-6 mb-8">

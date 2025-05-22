@@ -30,6 +30,8 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { BookingDialog } from '@/components/appointments/booking-dialog';
+import { DoctorProfileDialog } from './doctor-profile-dialog';
 
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
@@ -39,37 +41,10 @@ interface DoctorListingProps {
   onShowOnMap?: (doctor: Doctor) => void;
 }
 
-// Transform API doctor data to match our expected format
-const transformDoctorData = (apiDoctor: any): Doctor => {
-  return {
-    id: apiDoctor.id || apiDoctor._id?.$oid || '',
-    name: apiDoctor.name || '',
-    specialty: apiDoctor.specialty || '',
-    address: apiDoctor.address || '',
-    area: apiDoctor.area || '',
-    city: apiDoctor.city || '',
-    state: apiDoctor.state || '',
-    country: apiDoctor.country || '',
-    rating: apiDoctor.rating || 0,
-    experience: apiDoctor.experience || 0,
-    languages: apiDoctor.languages || [],
-    education: apiDoctor.education || [],
-    available: apiDoctor.available || false,
-    consultationFee: apiDoctor.consultationFee || 0,
-    imageUrl: apiDoctor.imageUrl || '',
-    gender: apiDoctor.gender || '',
-    description: apiDoctor.description || '',
-    location: apiDoctor.location || { lat: 0, lng: 0 },
-    reviews: apiDoctor.reviews || [],
-    availability: apiDoctor.availability || {},
-    vector_text: apiDoctor.vector_text || '',
-    symptoms: apiDoctor.symptoms || [],
-    createdAt: apiDoctor.createdAt ? new Date(apiDoctor.createdAt) : new Date()
-  };
-};
+const API_URL = 'http://localhost:5000/api';
 
 export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
   
   // Pagination state
@@ -98,23 +73,18 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   // Add state for controlling calendar popup
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const { data: apiDoctors, isLoading } = useQuery<any[]>({
-    queryKey: ['/api/doctors'],
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-    cacheTime: 0,
-    retry: 1,
-    onSuccess: (data) => {
-      console.log('Fetched doctors data:', data);
+  const { data: doctors, isLoading } = useQuery<Doctor[]>({
+    queryKey: ['doctors'],
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/doctors`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch doctors');
+      }
+      const data = await response.json();
+      return data as Doctor[];
     },
-    onError: (error) => {
-      console.error('Error fetching doctors:', error);
-    }
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
-
-  // Transform the API data
-  const doctors = apiDoctors?.map(transformDoctorData);
 
   // Get unique locations for filter dropdown - only include locations with doctors
   const locations = Array.from(
@@ -132,9 +102,9 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       doctor.specialty.toLowerCase().includes(specialty.toLowerCase());
     
     // Search term filter (searches name or specialty)
-    const matchesSearch = searchTerm === '' ||
-      doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchQuery === '' ||
+      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Location filter
     const matchesLocation = practiceFilter === 'all' ||
@@ -291,6 +261,10 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
     setIsCalendarOpen(false); // Close the calendar popup
   };
 
+  if (isLoading) {
+    return <div>Loading doctors...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <Card className="shadow-sm mb-6">
@@ -303,9 +277,9 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                 <div className="w-full sm:w-[300px]">
                   <Input 
                     placeholder="Search by name or specialty"
-                    value={searchTerm}
+                    value={searchQuery}
                     onChange={(e) => {
-                      setSearchTerm(e.target.value);
+                      setSearchQuery(e.target.value);
                       setCurrentPage(1);
                     }}
                     className="w-full"
@@ -420,7 +394,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                             <StarRating 
                               value={doctor.rating} 
                               showValue={true}
-                              reviewCount={doctor.reviews.length}
+                              reviewCount={doctor.reviews?.length || 0}
                             />
                           </div>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
@@ -430,18 +404,30 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                         <div className="flex gap-2 mt-4 md:mt-0">
                           <Button 
                             size="sm" 
+                            className="text-xs md:text-sm"
+                            onClick={() => handleBookAppointment(doctor)}
+                          >
+                            Book Appointment
+                          </Button>
+                          {onShowOnMap && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-xs md:text-sm"
+                              onClick={() => onShowOnMap(doctor)}
+                            >
+                              <Navigation size={16} className="mr-1" />
+                              Show on Map
+                            </Button>
+                          )}
+                          <Button 
+                            size="sm" 
                             variant="outline"
                             className="text-xs md:text-sm"
-                            onClick={() => onShowOnMap?.(doctor)}
+                            onClick={() => handleViewProfile(doctor)}
                           >
-                            <Navigation size={16} className="mr-1" />
-                            Show on Map
+                            View Profile
                           </Button>
-                          <Link href={`/doctor/${doctor.id}`}>
-                            <Button size="sm" className="text-xs md:text-sm">
-                              View Profile
-                            </Button>
-                          </Link>
                         </div>
                       </div>
                     </div>
@@ -502,210 +488,23 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
         </CardContent>
       </Card>
 
-      {/* Booking Dialog */}
-      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Book Appointment</DialogTitle>
-            <DialogDescription>
-              Schedule an appointment with Dr. {selectedDoctor?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {/* Date Selection */}
-            <div className="grid gap-2">
-              <Label>Select Date</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateSelect}
-                    disabled={(date) => {
-                      // Disable past dates
-                      return isBefore(date, startOfDay(new Date()));
-                    }}
-                    modifiers={{
-                      available: (date) => {
-                        // TODO: Replace with actual availability check
-                        // For now, just enable dates from tomorrow
-                        return !isBefore(date, startOfDay(addDays(new Date(), 1)));
-                      }
-                    }}
-                    modifiersStyles={{
-                      available: {
-                        fontWeight: 'bold',
-                        color: 'var(--primary)',
-                        textDecoration: 'underline'
-                      }
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+      <DoctorProfileDialog
+        doctor={selectedDoctor}
+        isOpen={isProfileDialogOpen}
+        onClose={() => {
+          setIsProfileDialogOpen(false);
+          setSelectedDoctor(null);
+        }}
+      />
 
-            {/* Time Slots - Only show after date selection */}
-            {showTimeSlots && selectedDate && (
-              <div className="grid gap-2">
-                <Label>Available Time Slots</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedDoctor && getAvailableTimeSlots(selectedDoctor, selectedDate).map((slot) => (
-                    <Button
-                      key={slot}
-                      variant={selectedTimeSlot === slot ? "default" : "outline"}
-                      className="w-full"
-                      onClick={() => setSelectedTimeSlot(slot)}
-                    >
-                      {slot}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Location Selection */}
-            <div className="grid gap-2">
-              <Label htmlFor="location">Select Location</Label>
-              <Select 
-                value={selectedLocation} 
-                onValueChange={setSelectedLocation}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedDoctor && getDoctorLocations(selectedDoctor).map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Reason/Symptoms Selection */}
-            <div className="grid gap-2">
-              <Label htmlFor="reason">Reason for Visit</Label>
-              <Select 
-                value={selectedReason} 
-                onValueChange={setSelectedReason}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select reason for visit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">General Checkup</SelectItem>
-                  <SelectItem value="followup">Follow-up Visit</SelectItem>
-                  <SelectItem value="consultation">New Consultation</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAppointmentSubmit}
-              disabled={!selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason}
-            >
-              Confirm Booking
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Profile Dialog */}
-      <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Doctor Profile</DialogTitle>
-            <DialogDescription>
-              Detailed information about Dr. {selectedDoctor?.name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedDoctor && (
-            <div className="grid gap-6 py-4">
-              <div className="flex items-start gap-4">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={selectedDoctor.imageUrl || ''} alt={selectedDoctor.name} />
-                  <AvatarFallback>{selectedDoctor.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedDoctor.name}</h3>
-                  <p className="text-sm text-neutral-500">{selectedDoctor.specialty}</p>
-                  <div className="flex items-center mt-1">
-                    <StarRating value={selectedDoctor.rating} showValue={true} reviewCount={selectedDoctor.reviews.length} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">About</h4>
-                  <p className="text-sm text-neutral-600">{selectedDoctor.description}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Experience</h4>
-                  <p className="text-sm text-neutral-600">{selectedDoctor.experience} years of experience</p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Education</h4>
-                  <ul className="list-disc list-inside text-sm text-neutral-600">
-                    {selectedDoctor.education.map((edu, index) => (
-                      <li key={index}>{edu}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Languages</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedDoctor.languages.map((lang, index) => (
-                      <span key={index} className="px-2 py-1 bg-neutral-100 rounded-full text-sm">
-                        {lang}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Location</h4>
-                  <p className="text-sm text-neutral-600">
-                    {formatLocation(selectedDoctor)}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Consultation Fee</h4>
-                  <p className="text-sm text-neutral-600">₹{selectedDoctor.consultationFee}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end">
-            <Button onClick={() => setIsProfileDialogOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BookingDialog
+        doctor={selectedDoctor}
+        isOpen={isBookingDialogOpen}
+        onClose={() => {
+          setIsBookingDialogOpen(false);
+          setSelectedDoctor(null);
+        }}
+      />
     </div>
   );
 }
