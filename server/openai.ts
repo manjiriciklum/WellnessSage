@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 import { logAuditEvent } from './security';
+import { ChatOllama } from "@langchain/community/chat_models/ollama";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 // Use a placeholder key for development - in production, this would be an actual API key
 const DUMMY_KEY = 'dummy_sk_openai_key';
@@ -142,10 +144,17 @@ export async function chatWithHealthAssistant(userId: number, message: string): 
     // Log health chat request for HIPAA compliance
     logAuditEvent(userId, 'request', 'healthChat', userId.toString(), `User chat with health assistant`);
 
+    // Debug environment variables
+    console.log('Environment check:', {
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'Set' : 'Not set',
+      OLLAMA_HOST: process.env.OLLAMA_HOST || 'Not set',
+      NODE_ENV: process.env.NODE_ENV
+    });
+
     // If we have a valid API key, use OpenAI API
     if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== DUMMY_KEY) {
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+        model: "gpt-4o",
         messages: [
           { 
             role: "system", 
@@ -161,11 +170,39 @@ export async function chatWithHealthAssistant(userId: number, message: string): 
       const content = response.choices[0].message.content;
       
       // Log successful chat
-      logAuditEvent(userId, 'complete', 'healthChat', userId.toString(), `Health chat completed successfully`);
+      logAuditEvent(userId, 'complete', 'healthChat', userId.toString(), `Health chat completed successfully with OpenAI`);
       
       return content || "I'm sorry, I couldn't generate a response. Please try again.";
+    } 
+    // If OpenAI is not available, try Ollama
+    else if (process.env.OLLAMA_HOST) {
+      console.log('Attempting to use Ollama at:', process.env.OLLAMA_HOST);
+      try {
+        const ollama = new ChatOllama({
+          baseUrl: process.env.OLLAMA_HOST,
+          model: "llama3.2:1b"
+        });
+
+        const response = await ollama.call([
+          new SystemMessage(HEALTH_COACH_SYSTEM_PROMPT),
+          new HumanMessage(message)
+        ]);
+
+        console.log('Ollama response123:', response);
+        
+        // Log successful chat
+        logAuditEvent(userId, 'complete', 'healthChat', userId.toString(), `Health chat completed successfully with Ollama`);
+        
+        return response.content || "I'm sorry, I couldn't generate a response. Please try again.";
+      } catch (ollamaError) {
+        console.error('Error with Ollama:', ollamaError);
+        if (ollamaError instanceof Error) {
+          console.error('Ollama error details:', ollamaError.message);
+        }
+        return generateFallbackChatResponse(message);
+      }
     } else {
-      // Use a fallback mechanism for demo or when API key is not available
+      console.log('Neither OpenAI nor Ollama is available, using fallback');
       return generateFallbackChatResponse(message);
     }
   } catch (error) {
