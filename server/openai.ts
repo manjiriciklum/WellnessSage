@@ -2,6 +2,10 @@ import OpenAI from 'openai';
 import { logAuditEvent } from './security';
 import { ChatOllama } from "@langchain/community/chat_models/ollama";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { isConnected } from './db/mongodb';
+import { mongoStorage } from './db/mongo-storage';
+import { storage } from './storage';
+import type { Doctor } from '@shared/schema';
 
 // Use a placeholder key for development - in production, this would be an actual API key
 const DUMMY_KEY = 'dummy_sk_openai_key';
@@ -180,26 +184,82 @@ export async function chatWithHealthAssistant(userId: number, message: string): 
       try {
         const ollama = new ChatOllama({
           baseUrl: process.env.OLLAMA_HOST,
-          model: "llama3.2:1b"
+          model: "llama3:8b"
         });
 
-        const response = await ollama.call([
-          new SystemMessage(HEALTH_COACH_SYSTEM_PROMPT),
+        // First, extract symptoms from user input
+        const symptomResponse = await ollama.call([
+          new SystemMessage(`You are a medical symptom extractor. Extract ONLY the symptoms from the given text.
+Rules:
+1. Return ONLY the symptoms, nothing else
+2. Use simple, clear symptom names
+3. If multiple symptoms, separate them with commas
+4. Do not include any explanations or additional text
+
+Example inputs and outputs:
+Input: "I have been experiencing severe headache and fever for the last 2 days"
+Output: headache, fever
+
+Input: "My stomach hurts and I feel nauseous"
+Output: stomach pain, nausea
+
+Input: "I'm coughing a lot and my throat is sore"
+Output: cough, sore throat`),
           new HumanMessage(message)
         ]);
 
-        console.log('Ollama response123:', response);
+        console.log('Extracted symptoms:', symptomResponse.content);
+        
+        // Get the symptoms as an array
+        const symptoms = (symptomResponse.content as string)
+          .split(',')
+          .map(s => s.trim().toLowerCase())
+          .filter(s => s.length > 0);
+
+        // Get all doctors from storage
+        const doctorStorage = isConnected() ? mongoStorage : storage;
+        console.log('Using storage:', isConnected() ? 'MongoDB' : 'Memory');
+        
+        const allDoctors = await doctorStorage.getAllDoctors();
+        console.log('Raw doctor data:', JSON.stringify(allDoctors[0], null, 2));
+        
+        // Filter doctors based on symptoms
+        const matchingDoctors = allDoctors.filter((doctor: Doctor) => {
+          console.log('Doctor in filter:', JSON.stringify(doctor, null, 2));
+          return symptoms.some(symptom => 
+            (doctor as any).symptoms?.some((docSymptom: string) => 
+              docSymptom.toLowerCase().includes(symptom.toLowerCase())
+            )
+          );
+        });
+
+        // Format the response with matching doctors
+        const doctorList = matchingDoctors.map((doctor: Doctor) => {
+          console.log('Doctor being formatted:', JSON.stringify(doctor, null, 2));
+          
+          return `Dr. ${(doctor as any).name || 'Name not available'}
+Specialty: ${doctor.specialty}
+Area: ${(doctor as any).area || 'Not specified'}
+City: ${(doctor as any).city || 'Not specified'}
+Availability: ${(doctor as any).available ? 'Available' : 'Not Available'}`
+        }).join('\n\n');
+
+        if (matchingDoctors.length === 0) {
+          return "I couldn't find any doctors matching your symptoms. Please try describing your symptoms differently or consult a general practitioner.";
+        }
+
+        const response = `Based on your symptoms (${symptoms.join(', ')}), here are some matching doctors:\n\n${doctorList}\n\nRemember, this is just a suggestion. Please consult with a healthcare professional for proper medical advice.`;
         
         // Log successful chat
-        logAuditEvent(userId, 'complete', 'healthChat', userId.toString(), `Health chat completed successfully with Ollama`);
+        logAuditEvent(userId, 'complete', 'healthChat', userId.toString(), `Doctors found successfully for symptoms: ${symptoms.join(', ')}`);
         
-        return response.content || "I'm sorry, I couldn't generate a response. Please try again.";
+        return response;
       } catch (ollamaError) {
         console.error('Error with Ollama:', ollamaError);
         if (ollamaError instanceof Error) {
           console.error('Ollama error details:', ollamaError.message);
         }
-        return generateFallbackChatResponse(message);
+        return "I'm sorry, I couldn't process your request. Please try again.";
       }
     } else {
       console.log('Neither OpenAI nor Ollama is available, using fallback');
