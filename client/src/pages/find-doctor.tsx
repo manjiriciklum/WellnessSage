@@ -177,17 +177,17 @@ export default function FindDoctorPage() {
       <div className="grid grid-cols-1 gap-6 mb-8">
         {/* Map Section */}
         <Card className="shadow-sm">
-          <CardContent className="p-4 md:p-6">
+          <CardContent className="p-4 md:p-2">
             
-            <h3 className="text-lg font-semibold mb-4">Doctor Locations</h3>
-            <div className="relative w-full" style={{ height: '400px', position: 'relative' }} id="map-cont">
+            {/* <h3 className="text-lg font-semibold mb-4">Doctor Locations</h3> */}
+            <div className="relative w-full" style={{ height: '330px', position: 'relative' }} id="map-cont">
               {mapSelectedDoctor && (
                 <div 
                   className="absolute z-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg transition-all duration-300"
                   style={{ 
-                    width: '300px',
+                    width: '260px',
                     left: '0px',
-                    top: '180px',
+                    bottom: '0px',
                     maxHeight: 'calc(100% - 40px)',
                     overflow: 'auto'
                   }}
@@ -213,12 +213,12 @@ export default function FindDoctorPage() {
       {/* Rest of the content */}
       <Tabs defaultValue="all" value={activeSpecialty} onValueChange={setActiveSpecialty}>
         <div className="flex items-center mb-6">
-          {/* <TabsList>
+          <TabsList>
             <TabsTrigger value="all">All Specialties</TabsTrigger>
             <TabsTrigger value="Primary Care">Primary Care</TabsTrigger>
             <TabsTrigger value="Cardiology">Cardiology</TabsTrigger>
             <TabsTrigger value="Mental Health">Mental Health</TabsTrigger>
-          </TabsList> */}
+          </TabsList>
         </div>
         
         <TabsContent value="all">

@@ -28,53 +28,53 @@ export function DoctorProfileDialog({ doctor, isOpen, onClose }: DoctorProfileDi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Doctor Profile</DialogTitle>
           <DialogDescription>
             Detailed information about Dr. {doctor.name}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
-          <div className="flex items-start gap-4">
+        <div className="grid gap-6 py-2">
+          <div className="flex items-start gap-2">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
+                <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
               <AvatarFallback>{doctor.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
-            </Avatar>
-            <div>
+              </Avatar>
+              <div>
               <h3 className="text-lg font-semibold">{doctor.name}</h3>
               <p className="text-sm text-neutral-500">{doctor.specialty}</p>
-              <div className="flex items-center mt-1">
-                <StarRating 
-                  value={doctor.rating} 
-                  showValue={true} 
-                  reviewCount={doctor.reviews?.length || 0} 
-                />
+                <div className="flex items-center mt-1">
+                  <StarRating 
+                    value={doctor.rating} 
+                    showValue={true}
+                    reviewCount={doctor.reviews?.length || 0}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
           <div className="grid gap-4">
-            <div>
+              <div>
               <h4 className="font-medium mb-2">About</h4>
               <p className="text-sm text-neutral-600">{doctor.description}</p>
-            </div>
+              </div>
 
-            <div>
+              <div>
               <h4 className="font-medium mb-2">Experience</h4>
               <p className="text-sm text-neutral-600">{doctor.experience} years of experience</p>
-            </div>
+              </div>
 
-            <div>
+              <div>
               <h4 className="font-medium mb-2">Education</h4>
               <ul className="list-disc list-inside text-sm text-neutral-600">
                 {doctor.education.map((edu, index) => (
                   <li key={index}>{edu}</li>
                 ))}
               </ul>
-            </div>
+              </div>
 
-            <div>
+              <div>
               <h4 className="font-medium mb-2">Languages</h4>
               <div className="flex flex-wrap gap-2">
                 {doctor.languages.map((lang, index) => (
@@ -109,10 +109,10 @@ export function DoctorProfileDialog({ doctor, isOpen, onClose }: DoctorProfileDi
                       </div>
                       <p className="text-sm text-neutral-600">{review.comment}</p>
                       <p className="text-xs text-neutral-500 mt-1">{review.date}</p>
-                    </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            </div>
             )}
           </div>
         </div>

@@ -15,9 +15,9 @@ interface DoctorInfoCardProps {
 export function DoctorInfoCard({ doctor, onShowOnMap, isSelected }: DoctorInfoCardProps) {
   return (
     <Card className={`transition-all duration-300 ${isSelected ? 'border-blue-500 shadow-lg' : ''}`}>
-      <CardContent className="p-4">
+      <CardContent className="p-2">
         <div className="flex items-start gap-4">
-          <Avatar className="w-16 h-16">
+          <Avatar className="w-12 h-12">
             <AvatarImage src={doctor.imageUrl} alt={doctor.name} />
             <AvatarFallback className="bg-blue-100 text-blue-600 text-lg">
               {doctor.name.split(' ').map(n => n[0]).join('')}
@@ -27,7 +27,7 @@ export function DoctorInfoCard({ doctor, onShowOnMap, isSelected }: DoctorInfoCa
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-lg text-gray-900">Dr. {doctor.name}</h3>
+                <h3 className="font-semibold text-base text-gray-900">Dr. {doctor.name}</h3>
                 <p className="text-sm text-blue-600">{doctor.specialty}</p>
               </div>
             </div>
@@ -42,7 +42,7 @@ export function DoctorInfoCard({ doctor, onShowOnMap, isSelected }: DoctorInfoCa
                 <MapPin className="w-4 h-4 text-gray-400" />
                 <span>{doctor.area}, {doctor.city}</span>
               </p>
-              <p className="flex items-center gap-2">
+              {/* <p className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-gray-400" />
                 <span>{doctor.experience} years experience</span>
               </p>
@@ -51,7 +51,7 @@ export function DoctorInfoCard({ doctor, onShowOnMap, isSelected }: DoctorInfoCa
                   <Languages className="w-4 h-4 text-gray-400" />
                   <span>{doctor.languages.join(', ')}</span>
                 </p>
-              )}
+              )} */}
             </div>
           </div>
         </div>

@@ -82,6 +82,10 @@ const AuthPage = () => {
                         required
                         value={loginForm.username}
                         onChange={handleLoginChange}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
                       />
                     </div>
                     <div className="space-y-2">
@@ -93,6 +97,7 @@ const AuthPage = () => {
                         required
                         value={loginForm.password}
                         onChange={handleLoginChange}
+                        autoComplete="new-password"
                       />
                     </div>
                   </CardContent>

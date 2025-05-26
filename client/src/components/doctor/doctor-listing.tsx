@@ -15,23 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
 import { format, addDays, isBefore, startOfDay } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { BookingDialog } from '@/components/appointments/booking-dialog';
 import { DoctorProfileDialog } from './doctor-profile-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
@@ -274,7 +267,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
             <div className="flex-1 space-y-2">
               <div className="text-sm font-medium">Filters</div>
               <div className="flex flex-wrap gap-3">
-                <div className="w-full sm:w-[300px]">
+                <div className="w-full sm:w-[200px]">
                   <Input 
                     placeholder="Search by name or specialty"
                     value={searchQuery}
@@ -287,7 +280,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                 </div>
                 
                 <Select value={practiceFilter} onValueChange={setPracticeFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
@@ -299,7 +292,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                 </Select>
                 
                 <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[130px]">
                     <SelectValue placeholder="Rating" />
                   </SelectTrigger>
                   <SelectContent>
@@ -359,7 +352,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       </Card>
 
       <Card className="shadow-sm">
-        <CardContent className="p-6">
+        <CardContent className="p-2">
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -375,7 +368,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
           ) : (
             <>
               {currentDoctors.map((doctor) => (
-                <Card key={doctor.id} className="p-4">
+                <Card key={doctor.id} className="p-2">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
                       <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
@@ -384,7 +377,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                     <div className="flex-1">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div>
-                          <h3 className="text-lg font-medium text-neutral-800 dark:text-white">
+                          <h3 className="text-base font-medium text-neutral-800 dark:text-white">
                             {doctor.name}
                           </h3>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300">
@@ -409,6 +402,24 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                           >
                             Book Appointment
                           </Button>
+
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="text-xs md:text-sm"
+                            onClick={() => handleViewProfile(doctor)}
+                          >
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Eye size={16} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View Profile</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </Button>
                           {onShowOnMap && (
                             <Button 
                               size="sm" 
@@ -417,17 +428,9 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                               onClick={() => onShowOnMap(doctor)}
                             >
                               <Navigation size={16} className="mr-1" />
-                              Show on Map
                             </Button>
                           )}
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="text-xs md:text-sm"
-                            onClick={() => handleViewProfile(doctor)}
-                          >
-                            View Profile
-                          </Button>
+                          
                         </div>
                       </div>
                     </div>

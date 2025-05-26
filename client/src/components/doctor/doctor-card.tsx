@@ -70,7 +70,6 @@ export function DoctorCard({ doctor, onBookAppointment, onShowOnMap }: DoctorCar
                     onClick={() => onShowOnMap(doctor)}
                   >
                     <Navigation size={16} className="mr-1" />
-                    Show on Map
                   </Button>
                 )}
                 <Button 
@@ -79,7 +78,6 @@ export function DoctorCard({ doctor, onBookAppointment, onShowOnMap }: DoctorCar
                   className="text-xs md:text-sm"
                   onClick={handleViewProfile}
                 >
-                  View Profile
                 </Button>
               </div>
             </div>
