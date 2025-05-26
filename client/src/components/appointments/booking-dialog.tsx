@@ -32,6 +32,7 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
   const [timeSlot, setTimeSlot] = useState<string>('');
   const [location, setLocation] = useState<string>('');
   const [reason, setReason] = useState<string>('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -99,6 +100,11 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
     });
   };
 
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+    setIsCalendarOpen(false); // Close the calendar when a date is selected
+  };
+
   if (!doctor) return null;
 
   // Get available time slots from doctor's availability
@@ -122,7 +128,7 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Date</Label>
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -139,7 +145,7 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={handleDateSelect}
                   initialFocus
                   disabled={(date) => date < new Date()}
                 />

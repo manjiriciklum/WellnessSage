@@ -391,7 +391,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                             />
                           </div>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
-                            Experience: {doctor.experience} years • Fee: ₹{doctor.consultationFee}
+                            Experience: {doctor.experience} years • Fee: ${doctor.consultationFee}
                           </p>
                         </div>
                         <div className="flex gap-2 mt-4 md:mt-0">
@@ -403,32 +403,42 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                             Book Appointment
                           </Button>
 
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="text-xs md:text-sm"
-                            onClick={() => handleViewProfile(doctor)}
-                          >
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-xs md:text-sm"
+                                  onClick={() => handleViewProfile(doctor)}
+                                >
+                                  <Eye size={16} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View Profile</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          {onShowOnMap && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Eye size={16} />
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="text-xs md:text-sm"
+                                    onClick={() => onShowOnMap(doctor)}
+                                  >
+                                    <Navigation size={16} />
+                                  </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>View Profile</p>
+                                  <p>Show on Map</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-                          </Button>
-                          {onShowOnMap && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-xs md:text-sm"
-                              onClick={() => onShowOnMap(doctor)}
-                            >
-                              <Navigation size={16} className="mr-1" />
-                            </Button>
                           )}
                           
                         </div>

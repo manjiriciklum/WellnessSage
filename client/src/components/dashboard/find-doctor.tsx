@@ -18,6 +18,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { DoctorProfileDialog } from '@/components/doctor/doctor-profile-dialog';
 import { BookingDialog } from '@/components/appointments/booking-dialog';
+import { AppointmentTypeDialog } from '@/components/appointments/appointment-type-dialog';
 
 // Transform API doctor data to match our expected format
 const transformDoctorData = (apiDoctor: any): Doctor => {
@@ -138,18 +139,26 @@ export function FindDoctor() {
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [showTimeSlots, setShowTimeSlots] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
+  const [appointmentType, setAppointmentType] = useState<'in-clinic' | 'video' | null>(null);
 
   const { toast } = useToast();
 
   // Add appointment booking handlers
   const handleBookAppointment = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
-    setIsBookingDialogOpen(true);
+    setIsAppointmentTypeDialogOpen(true);
   };
 
   const handleViewProfile = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
     setIsProfileDialogOpen(true);
+  };
+
+  const handleAppointmentTypeSelect = (type: 'in-clinic' | 'video') => {
+    setAppointmentType(type);
+    setIsAppointmentTypeDialogOpen(false);
+    setIsBookingDialogOpen(true);
   };
 
   const handleAppointmentSubmit = async () => {
@@ -230,9 +239,9 @@ export function FindDoctor() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white">Find a Doctor</h2>
+        <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white">Consult your PCP</h2>
         <Link href="/find-doctor">
-          <Button variant="link" className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0">View All</Button>
+          <Button variant="link" className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0">View All</Button> 
         </Link>
       </div>
       
@@ -262,7 +271,7 @@ export function FindDoctor() {
                             />
                           </div>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
-                            Experience: {currentDoctors[0].experience} years • Fee: ₹{currentDoctors[0].consultationFee}
+                            Experience: {currentDoctors[0].experience} years • Fee: ${currentDoctors[0].consultationFee}
                           </p>
                         </div>
                         <div className="flex gap-2 mt-4 md:mt-0">
@@ -273,23 +282,23 @@ export function FindDoctor() {
                           >
                             Book Appointment
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="text-xs md:text-sm"
-                            onClick={() => handleViewProfile(currentDoctors[0])}
-                          >
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
+                          <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-xs md:text-sm"
+                                  onClick={() => handleViewProfile(currentDoctors[0])}
+                                >
                                   <Eye size={16} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>View Profile</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </Button>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View Profile</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </div>
                     </div>
@@ -309,13 +318,25 @@ export function FindDoctor() {
         }}
       />
 
+      <AppointmentTypeDialog
+        doctor={selectedDoctor}
+        isOpen={isAppointmentTypeDialogOpen}
+        onClose={() => {
+          setIsAppointmentTypeDialogOpen(false);
+          setSelectedDoctor(null);
+        }}
+        onSelectType={handleAppointmentTypeSelect}
+      />
+
       <BookingDialog
         doctor={selectedDoctor}
         isOpen={isBookingDialogOpen}
         onClose={() => {
           setIsBookingDialogOpen(false);
           setSelectedDoctor(null);
+          setAppointmentType(null);
         }}
+        appointmentType={appointmentType}
       />
     </div>
   );

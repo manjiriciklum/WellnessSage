@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SimpleProgress } from '@/components/ui/simple-progress';
 import { CheckCircle, Plus } from 'lucide-react';
 import { type Reminder, type Goal } from '@shared/schema';
-import { calculateProgress } from '@/lib/utils';
+import { calculateProgress, formatDate } from '@/lib/utils';
 import { AddReminderModal } from './add-reminder-modal';
 import { AddGoalModal } from './add-goal-modal';
 import { useAuth } from '@/hooks/use-auth';
@@ -98,7 +98,9 @@ export function RemindersAndGoals() {
                       <div className={`w-2 h-2 rounded-full bg-${reminder.color} mr-3`}></div>
                       <div>
                         <p className={`text-sm font-medium ${reminder.isCompleted ? 'line-through text-neutral-400' : 'text-neutral-700 dark:text-neutral-100'}`}>{reminder.title}</p>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-300">{reminder.time}</p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-300">
+                          {reminder.time ? formatDate(reminder.time) : 'No time set'}
+                        </p>
                       </div>
                     </div>
                     <Button 

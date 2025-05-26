@@ -94,7 +94,7 @@ export function DoctorProfileDialog({ doctor, isOpen, onClose }: DoctorProfileDi
 
             <div>
               <h4 className="font-medium mb-2">Consultation Fee</h4>
-              <p className="text-sm text-neutral-600">₹{doctor.consultationFee}</p>
+              <p className="text-sm text-neutral-600">${doctor.consultationFee}</p>
             </div>
 
             {doctor.reviews && doctor.reviews.length > 0 && (

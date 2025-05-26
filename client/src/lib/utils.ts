@@ -13,13 +13,12 @@ export function formatTime(date: Date): string {
   });
 }
 
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+export function formatDate(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const day = dateObj.getDate();
+  const month = dateObj.toLocaleString('default', { month: 'short' });
+  const year = dateObj.getFullYear();
+  return `${day} ${month} ${year}`;
 }
 
 export function truncateText(text: string, maxLength: number): string {
