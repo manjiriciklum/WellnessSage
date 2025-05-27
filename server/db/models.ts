@@ -158,8 +158,9 @@ export interface IAppointment extends Document {
   patientId: string;
   date: Date;
   timeSlot: string;
-  location: string;
+  location?: string;
   reason: string;
+  appointmentType: 'in-clinic' | 'video';
   status: 'scheduled' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
@@ -315,8 +316,9 @@ const AppointmentSchema = new Schema<IAppointment>({
   patientId: { type: String, required: true },
   date: { type: Date, required: true },
   timeSlot: { type: String, required: true },
-  location: { type: String, required: true },
+  location: { type: String, required: false },
   reason: { type: String, required: true },
+  appointmentType: { type: String, enum: ['in-clinic', 'video'], required: true },
   status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

@@ -28,6 +28,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         return 'Alerts & Reminders';
       case '/settings':
         return 'Settings';
+      case '/stress-management':
+        return 'Stress Management';
       default:
         return 'Dashboard';
     }

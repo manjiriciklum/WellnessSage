@@ -7,6 +7,7 @@ import { getColorForCategory, getIconForCategory } from '@/lib/utils';
 import { type AiInsight } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 
 // Mock data specific to health insights page
 const healthInsightsMockData = (userId: number): AiInsight[] => [
@@ -45,6 +46,7 @@ const healthInsightsMockData = (userId: number): AiInsight[] => [
 export function InsightsList() {
   const { user } = useAuth();
   const userId = user?.id;
+  const [, navigate] = useLocation();
 
   console.log(user);
 
@@ -150,6 +152,11 @@ export function InsightsList() {
               <Button 
                 className="whitespace-nowrap"
                 variant={insight.category === 'stress' ? 'default' : 'outline'}
+                onClick={() => {
+                  if (insight.category === 'stress') {
+                    navigate('/stress-management');
+                  }
+                }}
               >
                 {insight.action}
               </Button>

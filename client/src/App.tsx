@@ -14,6 +14,7 @@ import AlertsRemindersPage from "@/pages/alerts-reminders";
 import HealthCoachPage from "@/pages/health-coach";
 import SettingsPage from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";
+import StressManagementPage from "@/pages/stress-management";
 import { DashboardLayout } from "@/components/dashboard/layout";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -31,6 +32,7 @@ function ProtectedDashboard() {
         <Route path="/alerts-reminders" component={AlertsRemindersPage} />
         <Route path="/health-coach" component={HealthCoachPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/stress-management" component={StressManagementPage} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

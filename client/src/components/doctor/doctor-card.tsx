@@ -3,9 +3,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StarRating } from '@/components/ui/star-rating';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MapPin, Navigation } from 'lucide-react';
+import { MapPin, Navigation, Eye } from 'lucide-react';
 import { type Doctor } from '@/types/doctor';
 import { DoctorProfileDialog } from './doctor-profile-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DoctorCardProps {
   doctor: Doctor;
@@ -51,7 +57,7 @@ export function DoctorCard({ doctor, onBookAppointment, onShowOnMap }: DoctorCar
                   />
                 </div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
-                  Experience: {doctor.experience} years • Fee: ₹{doctor.consultationFee}
+                  Experience: {doctor.experience} years • Fee: ${doctor.consultationFee}
                 </p>
               </div>
               <div className="flex gap-2 mt-4 md:mt-0">
@@ -63,24 +69,41 @@ export function DoctorCard({ doctor, onBookAppointment, onShowOnMap }: DoctorCar
                   Book Appointment
                 </Button>
                 {onShowOnMap && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="text-xs md:text-sm"
-                    onClick={() => onShowOnMap(doctor)}
-                  >
-                    <Navigation size={16} className="mr-1" />
-                    Show on Map
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="text-xs md:text-sm"
+                          onClick={() => onShowOnMap(doctor)}
+                        >
+                          <Navigation size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Show on Map</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="text-xs md:text-sm"
-                  onClick={handleViewProfile}
-                >
-                  View Profile
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-xs md:text-sm"
+                        onClick={handleViewProfile}
+                      >
+                        <Eye size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View Profile</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </div>

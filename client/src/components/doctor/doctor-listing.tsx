@@ -15,23 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
 import { format, addDays, isBefore, startOfDay } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { BookingDialog } from '@/components/appointments/booking-dialog';
 import { DoctorProfileDialog } from './doctor-profile-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { AppointmentTypeDialog } from '@/components/appointments/appointment-type-dialog';
 
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
@@ -69,6 +63,8 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [showTimeSlots, setShowTimeSlots] = useState(false);
   const [appointmentNotes, setAppointmentNotes] = useState('');
+  const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<'in-clinic' | 'video' | null>(null);
 
   // Add state for controlling calendar popup
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -171,6 +167,12 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   // Handle booking appointment
   const handleBookAppointment = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
+    setIsAppointmentTypeDialogOpen(true);
+  };
+
+  const handleAppointmentTypeSelect = (type: 'in-clinic' | 'video') => {
+    setSelectedAppointmentType(type);
+    setIsAppointmentTypeDialogOpen(false);
     setIsBookingDialogOpen(true);
   };
 
@@ -184,22 +186,39 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   const { toast } = useToast();
 
   const handleAppointmentSubmit = async () => {
-    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason) return;
+    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedReason) return;
 
     try {
+      type AppointmentData = {
+        doctorId: string;
+        date: string;
+        timeSlot: string;
+        reason: string;
+        appointmentType: 'in-clinic' | 'video';
+        location?: string;
+      };
+
+      const appointmentData: AppointmentData = {
+        doctorId: selectedDoctor.id,
+        date: selectedDate.toISOString(),
+        timeSlot: selectedTimeSlot,
+        reason: selectedReason,
+        appointmentType: selectedAppointmentType as 'in-clinic' | 'video',
+        location: selectedLocation || "",
+      };
+
+      // Only include location for in-clinic appointments
+      // if (selectedAppointmentType === 'in-clinic' && selectedLocation) {
+      //   appointmentData.location = selectedLocation;
+      // }
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          doctorId: selectedDoctor.id,
-          date: selectedDate.toISOString(),
-          timeSlot: selectedTimeSlot,
-          location: selectedLocation,
-          reason: selectedReason,
-        }),
+        body: JSON.stringify(appointmentData),
       });
 
       if (!response.ok) {
@@ -211,7 +230,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       
       toast({
         title: "Appointment Booked",
-        description: `Your appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
+        description: `Your ${selectedAppointmentType === 'video' ? 'video' : ''} appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
       });
 
       // Close dialog and reset form
@@ -222,7 +241,8 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       setSelectedReason('');
       setShowTimeSlots(false);
       setSelectedDoctor(null);
-    } catch (error) {
+      setSelectedAppointmentType(null);
+    } catch (error: any) {
       console.error('Error booking appointment:', error);
       toast({
         title: "Error",
@@ -274,7 +294,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
             <div className="flex-1 space-y-2">
               <div className="text-sm font-medium">Filters</div>
               <div className="flex flex-wrap gap-3">
-                <div className="w-full sm:w-[300px]">
+                <div className="w-full sm:w-[200px]">
                   <Input 
                     placeholder="Search by name or specialty"
                     value={searchQuery}
@@ -287,7 +307,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                 </div>
                 
                 <Select value={practiceFilter} onValueChange={setPracticeFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
@@ -299,7 +319,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                 </Select>
                 
                 <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[130px]">
                     <SelectValue placeholder="Rating" />
                   </SelectTrigger>
                   <SelectContent>
@@ -359,7 +379,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       </Card>
 
       <Card className="shadow-sm">
-        <CardContent className="p-6">
+        <CardContent className="p-2">
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -375,7 +395,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
           ) : (
             <>
               {currentDoctors.map((doctor) => (
-                <Card key={doctor.id} className="p-4">
+                <Card key={doctor.id} className="p-2">
                   <div className="flex flex-col md:flex-row items-start gap-4">
                     <Avatar className="w-16 h-16">
                       <AvatarImage src={doctor.imageUrl || ''} alt={doctor.name} />
@@ -384,7 +404,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                     <div className="flex-1">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div>
-                          <h3 className="text-lg font-medium text-neutral-800 dark:text-white">
+                          <h3 className="text-base font-medium text-neutral-800 dark:text-white">
                             {doctor.name}
                           </h3>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300">
@@ -398,7 +418,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                             />
                           </div>
                           <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-1">
-                            Experience: {doctor.experience} years • Fee: ₹{doctor.consultationFee}
+                            Experience: {doctor.experience} years • Fee: ${doctor.consultationFee}
                           </p>
                         </div>
                         <div className="flex gap-2 mt-4 md:mt-0">
@@ -409,25 +429,45 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
                           >
                             Book Appointment
                           </Button>
+
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-xs md:text-sm"
+                                  onClick={() => handleViewProfile(doctor)}
+                                >
+                                  <Eye size={16} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View Profile</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
                           {onShowOnMap && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-xs md:text-sm"
-                              onClick={() => onShowOnMap(doctor)}
-                            >
-                              <Navigation size={16} className="mr-1" />
-                              Show on Map
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="text-xs md:text-sm"
+                                    onClick={() => onShowOnMap(doctor)}
+                                  >
+                                    <Navigation size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Show on Map</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="text-xs md:text-sm"
-                            onClick={() => handleViewProfile(doctor)}
-                          >
-                            View Profile
-                          </Button>
+                          
                         </div>
                       </div>
                     </div>
@@ -497,13 +537,21 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
         }}
       />
 
+      <AppointmentTypeDialog
+        doctor={selectedDoctor}
+        isOpen={isAppointmentTypeDialogOpen}
+        onClose={() => setIsAppointmentTypeDialogOpen(false)}
+        onSelectType={handleAppointmentTypeSelect}
+      />
+
       <BookingDialog
         doctor={selectedDoctor}
         isOpen={isBookingDialogOpen}
         onClose={() => {
           setIsBookingDialogOpen(false);
-          setSelectedDoctor(null);
+          setSelectedAppointmentType(null);
         }}
+        appointmentType={selectedAppointmentType}
       />
     </div>
   );

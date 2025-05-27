@@ -25,13 +25,15 @@ interface BookingDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  appointmentType: 'in-clinic' | 'video' | null;
 }
 
-export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDialogProps) {
+export function BookingDialog({ doctor, isOpen, onClose, onSuccess, appointmentType }: BookingDialogProps) {
   const [date, setDate] = useState<Date>();
   const [timeSlot, setTimeSlot] = useState<string>('');
   const [location, setLocation] = useState<string>('');
   const [reason, setReason] = useState<string>('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,8 +42,9 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
       doctorId: string;
       date: string;
       timeSlot: string;
-      location: string;
+      location?: string;
       reason: string;
+      appointmentType: 'in-clinic' | 'video';
     }) => {
       const response = await fetch(`${API_URL}/appointments`, {
         method: 'POST',
@@ -79,9 +82,9 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!doctor) return;
+    if (!doctor || !appointmentType) return;
     
-    if (!date || !timeSlot || !location || !reason) {
+    if (!date || !timeSlot || !reason || (appointmentType === 'in-clinic' && !location)) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -94,9 +97,15 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
       doctorId: doctor.id,
       date: format(date, 'yyyy-MM-dd'),
       timeSlot,
-      location,
+      location: appointmentType === 'in-clinic' ? location : undefined,
       reason,
+      appointmentType,
     });
+  };
+
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+    setIsCalendarOpen(false);
   };
 
   if (!doctor) return null;
@@ -114,7 +123,7 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Book Appointment with Dr. {doctor.name}</DialogTitle>
+          <DialogTitle>Book {appointmentType === 'video' ? 'Video' : ''} Appointment with Dr. {doctor.name}</DialogTitle>
           <DialogDescription>
             Select your preferred date and time slot for the appointment.
           </DialogDescription>
@@ -122,7 +131,7 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Date</Label>
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -139,13 +148,14 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={handleDateSelect}
                   initialFocus
                   disabled={(date) => date < new Date()}
                 />
               </PopoverContent>
             </Popover>
           </div>
+          
           <div className="space-y-2">
             <Label>Time Slot</Label>
             <Select value={timeSlot} onValueChange={setTimeSlot}>
@@ -161,26 +171,30 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Location</Label>
-            <Select value={location} onValueChange={setLocation}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select location" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctor.locations?.map((loc) => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </SelectItem>
-                )) || (
-                  <>
-                    <SelectItem value="main">Main Clinic</SelectItem>
-                    <SelectItem value="satellite">Satellite Clinic</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+
+          {appointmentType === 'in-clinic' && (
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Select value={location} onValueChange={setLocation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctor.locations?.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </SelectItem>
+                  )) || (
+                    <>
+                      <SelectItem value="main">Main Clinic</SelectItem>
+                      <SelectItem value="satellite">Satellite Clinic</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label>Reason for Visit</Label>
             <Select value={reason} onValueChange={setReason}>
@@ -195,6 +209,7 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess }: BookingDia
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" type="button" onClick={onClose}>
               Cancel

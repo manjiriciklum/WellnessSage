@@ -9,6 +9,7 @@ import { type Reminder } from '@shared/schema';
 import { useNotification } from '@/contexts/NotificationContext';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
+import { formatDate } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -222,7 +223,9 @@ export default function AlertsRemindersPage() {
                             <p className={`text-sm font-medium ${reminder.isCompleted ? 'line-through text-neutral-400' : ''}`}>
                               {reminder.title}
                             </p>
-                            <p className="text-xs text-neutral-500 dark:text-neutral-300">{reminder.time}</p>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-300">
+                              {reminder.time ? formatDate(reminder.time) : 'No time set'}
+                            </p>
                           </div>
                         </div>
                         <div className="flex gap-2">
