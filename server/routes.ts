@@ -472,6 +472,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(weeklyData);
   });
 
+  app.get("/api/users/:userId/health-data/monthly", async (req, res) => {
+    const userId = req.params.userId;
+    // Log the audit event
+    console.log(`AUDIT: view healthData multiple by user ${userId} (monthly data)`);
+    
+    // Use MongoDB storage if the ID is a MongoDB ObjectId
+    const storageToUse = /^[0-9a-fA-F]{24}$/.test(userId) ? mongoStorage : storage;
+    const healthData = await storageToUse.getHealthDataByUserId(userId);
+    
+    // Filter to only get the last 30 days' data
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    
+    const monthlyData = healthData.filter(data => {
+      if (!data.date) return false;
+      const dataDate = new Date(data.date);
+      return dataDate >= thirtyDaysAgo && dataDate <= today;
+    });
+    
+    // Sort by date, oldest first
+    monthlyData.sort((a, b) => {
+      if (!a.date || !b.date) return 0;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+    
+    return res.json(monthlyData);
+  });
+
   // Wearable devices routes
   app.get("/api/users/:userId/wearable-devices", async (req, res) => {
     const userId = parseInt(req.params.userId);
