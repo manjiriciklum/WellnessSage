@@ -25,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AppointmentTypeDialog } from '@/components/appointments/appointment-type-dialog';
 
 type SortField = 'name' | 'rating' | 'specialty';
 type SortOrder = 'asc' | 'desc';
@@ -62,6 +63,8 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [showTimeSlots, setShowTimeSlots] = useState(false);
   const [appointmentNotes, setAppointmentNotes] = useState('');
+  const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<'in-clinic' | 'video' | null>(null);
 
   // Add state for controlling calendar popup
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -164,6 +167,12 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   // Handle booking appointment
   const handleBookAppointment = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
+    setIsAppointmentTypeDialogOpen(true);
+  };
+
+  const handleAppointmentTypeSelect = (type: 'in-clinic' | 'video') => {
+    setSelectedAppointmentType(type);
+    setIsAppointmentTypeDialogOpen(false);
     setIsBookingDialogOpen(true);
   };
 
@@ -177,22 +186,39 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   const { toast } = useToast();
 
   const handleAppointmentSubmit = async () => {
-    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason) return;
+    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedReason) return;
 
     try {
+      type AppointmentData = {
+        doctorId: string;
+        date: string;
+        timeSlot: string;
+        reason: string;
+        appointmentType: 'in-clinic' | 'video';
+        location?: string;
+      };
+
+      const appointmentData: AppointmentData = {
+        doctorId: selectedDoctor.id,
+        date: selectedDate.toISOString(),
+        timeSlot: selectedTimeSlot,
+        reason: selectedReason,
+        appointmentType: selectedAppointmentType as 'in-clinic' | 'video',
+        location: selectedLocation || "",
+      };
+
+      // Only include location for in-clinic appointments
+      // if (selectedAppointmentType === 'in-clinic' && selectedLocation) {
+      //   appointmentData.location = selectedLocation;
+      // }
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          doctorId: selectedDoctor.id,
-          date: selectedDate.toISOString(),
-          timeSlot: selectedTimeSlot,
-          location: selectedLocation,
-          reason: selectedReason,
-        }),
+        body: JSON.stringify(appointmentData),
       });
 
       if (!response.ok) {
@@ -204,7 +230,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       
       toast({
         title: "Appointment Booked",
-        description: `Your appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
+        description: `Your ${selectedAppointmentType === 'video' ? 'video' : ''} appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
       });
 
       // Close dialog and reset form
@@ -215,7 +241,8 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       setSelectedReason('');
       setShowTimeSlots(false);
       setSelectedDoctor(null);
-    } catch (error) {
+      setSelectedAppointmentType(null);
+    } catch (error: any) {
       console.error('Error booking appointment:', error);
       toast({
         title: "Error",
@@ -510,13 +537,21 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
         }}
       />
 
+      <AppointmentTypeDialog
+        doctor={selectedDoctor}
+        isOpen={isAppointmentTypeDialogOpen}
+        onClose={() => setIsAppointmentTypeDialogOpen(false)}
+        onSelectType={handleAppointmentTypeSelect}
+      />
+
       <BookingDialog
         doctor={selectedDoctor}
         isOpen={isBookingDialogOpen}
         onClose={() => {
           setIsBookingDialogOpen(false);
-          setSelectedDoctor(null);
+          setSelectedAppointmentType(null);
         }}
+        appointmentType={selectedAppointmentType}
       />
     </div>
   );

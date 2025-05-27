@@ -162,7 +162,7 @@ export function FindDoctor() {
   };
 
   const handleAppointmentSubmit = async () => {
-    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedLocation || !selectedReason) return;
+    if (!selectedDoctor || !selectedDate || !selectedTimeSlot || !selectedReason) return;
 
     try {
       const response = await fetch('/api/appointments', {
@@ -175,7 +175,7 @@ export function FindDoctor() {
           doctorId: selectedDoctor.id,
           date: selectedDate.toISOString(),
           timeSlot: selectedTimeSlot,
-          location: selectedLocation,
+          location: selectedLocation || "",
           reason: selectedReason,
         }),
       });
@@ -240,9 +240,9 @@ export function FindDoctor() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-headings font-semibold text-neutral-800 dark:text-white">Consult your PCP</h2>
-        <Link href="/find-doctor">
+        {/* <Link href="/find-doctor">
           <Button variant="link" className="text-primary text-sm font-medium hover:text-primary-dark transition-colors p-0">View All</Button> 
-        </Link>
+        </Link> */}
       </div>
       
       <Card className="shadow-sm">
