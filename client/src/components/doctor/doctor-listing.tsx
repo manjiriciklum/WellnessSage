@@ -230,7 +230,7 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
       
       toast({
         title: "Appointment Booked",
-        description: `Your ${selectedAppointmentType === 'video' ? 'video' : ''} appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
+        description: `Your ${selectedAppointmentType === 'video' ? 'video' : ''} appointment with ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
       });
 
       // Close dialog and reset form

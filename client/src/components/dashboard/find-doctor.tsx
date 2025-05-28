@@ -189,7 +189,7 @@ export function FindDoctor() {
       
       toast({
         title: "Appointment Booked",
-        description: `Your appointment with Dr. ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
+        description: `Your appointment with ${selectedDoctor.name} has been scheduled for ${format(selectedDate, "PPP")} at ${selectedTimeSlot}`,
       });
 
       // Close dialog and reset form
