@@ -883,331 +883,331 @@ export class MemStorage implements IStorage {
   }
 
   // Initialize demo data
-  private initializeDemoData() {
-    // Create demo user
-    const demoUser: User = {
-      id: 1,
-      username: 'emmauser',
-      password: 'password123',
-      firstName: 'Emma',
-      lastName: 'Wilson',
-      email: 'emma@example.com',
-      profileImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80',
-      role: 'user',
-      oauthProvider: null,
-      oauthId: null,
-      lastLogin: null,
-      createdAt: new Date()
-    };
-    this.users.set(demoUser.id, demoUser);
-    this.userId++;
+  // private initializeDemoData() {
+  //   // Create demo user
+  //   const demoUser: User = {
+  //     id: 1,
+  //     username: 'emmauser',
+  //     password: 'password123',
+  //     firstName: 'Emma',
+  //     lastName: 'Wilson',
+  //     email: 'emma@example.com',
+  //     profileImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80',
+  //     role: 'user',
+  //     oauthProvider: null,
+  //     oauthId: null,
+  //     lastLogin: null,
+  //     createdAt: new Date()
+  //   };
+  //   this.users.set(demoUser.id, demoUser);
+  //   this.userId++;
 
-    // Create demo doctors
-    const demoDoctors: Doctor[] = [
-      {
-        id: 1,
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        specialty: 'Cardiology',
-        practice: 'SF Medical Center',
-        location: 'San Francisco, CA',
-        rating: 4.7,
-        reviewCount: 128,
-        profileImage: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80'
-      },
-      {
-        id: 2,
-        firstName: 'Michael',
-        lastName: 'Chen',
-        specialty: 'Primary Care',
-        practice: 'Bay Health Clinic',
-        location: 'San Francisco, CA',
-        rating: 4.2,
-        reviewCount: 95,
-        profileImage: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80'
-      },
-      {
-        id: 3,
-        firstName: 'Emily',
-        lastName: 'Rodriguez',
-        specialty: 'Mental Health',
-        practice: 'Wellbeing Center',
-        location: 'San Francisco, CA',
-        rating: 4.9,
-        reviewCount: 210,
-        profileImage: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80'
-      }
-    ];
+  //   // Create demo doctors
+  //   const demoDoctors: Doctor[] = [
+  //     {
+  //       id: 1,
+  //       firstName: 'Sarah',
+  //       lastName: 'Johnson',
+  //       specialty: 'Cardiology',
+  //       practice: 'SF Medical Center',
+  //       location: 'San Francisco, CA',
+  //       rating: 4.7,
+  //       reviewCount: 128,
+  //       profileImage: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80'
+  //     },
+  //     {
+  //       id: 2,
+  //       firstName: 'Michael',
+  //       lastName: 'Chen',
+  //       specialty: 'Primary Care',
+  //       practice: 'Bay Health Clinic',
+  //       location: 'San Francisco, CA',
+  //       rating: 4.2,
+  //       reviewCount: 95,
+  //       profileImage: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80'
+  //     },
+  //     {
+  //       id: 3,
+  //       firstName: 'Emily',
+  //       lastName: 'Rodriguez',
+  //       specialty: 'Mental Health',
+  //       practice: 'Wellbeing Center',
+  //       location: 'San Francisco, CA',
+  //       rating: 4.9,
+  //       reviewCount: 210,
+  //       profileImage: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?ixlib=rb-1.2.1&auto=format&fit=crop&w=120&q=80'
+  //     }
+  //   ];
     
-    demoDoctors.forEach(doctor => {
-      this.doctors.set(doctor.id, doctor);
-      this.doctorId++;
-    });
+  //   demoDoctors.forEach(doctor => {
+  //     this.doctors.set(doctor.id, doctor);
+  //     this.doctorId++;
+  //   });
 
-    // Create demo wearable devices
-    const demoDevices: WearableDevice[] = [
-      {
-        id: 1,
-        userId: 1,
-        deviceName: 'Apple Watch Series 8',
-        deviceType: 'watch',
-        deviceModel: 'Series 8',
-        manufacturer: 'Apple',
-        serialNumber: 'AW123456',
-        firmwareVersion: '9.0',
-        batteryLevel: 85,
-        isConnected: true,
-        lastSynced: new Date(),
-        capabilities: {
-          heartRate: true,
-          stepCount: true,
-          caloriesBurned: true,
-          sleep: true,
-          bloodOxygen: true,
-          ecg: true,
-          temperature: true
-        },
-        connectionSettings: {
-          connectionType: 'bluetooth',
-          autoSync: true,
-          syncInterval: 15,
-          dataPermissions: {
-            shareHealthData: true,
-            shareLocation: false,
-            shareSleepData: true
-          }
-        }
-      },
-      {
-        id: 2,
-        userId: 1,
-        deviceName: 'Fitbit Charge 5',
-        deviceType: 'tracker',
-        deviceModel: 'Charge 5',
-        manufacturer: 'Fitbit',
-        serialNumber: 'FB789012',
-        firmwareVersion: '2.0',
-        batteryLevel: 60,
-        isConnected: false,
-        lastSynced: null,
-        capabilities: {
-          heartRate: true,
-          stepCount: true,
-          caloriesBurned: true,
-          sleep: true,
-          bloodOxygen: true,
-          stress: true
-        },
-        connectionSettings: {
-          connectionType: 'bluetooth',
-          autoSync: true,
-          syncInterval: 30,
-          dataPermissions: {
-            shareHealthData: true,
-            shareLocation: false,
-            shareSleepData: true
-          }
-        }
-      }
-    ];
+  //   // Create demo wearable devices
+  //   const demoDevices: WearableDevice[] = [
+  //     {
+  //       id: 1,
+  //       userId: 1,
+  //       deviceName: 'Apple Watch Series 8',
+  //       deviceType: 'watch',
+  //       deviceModel: 'Series 8',
+  //       manufacturer: 'Apple',
+  //       serialNumber: 'AW123456',
+  //       firmwareVersion: '9.0',
+  //       batteryLevel: 85,
+  //       isConnected: true,
+  //       lastSynced: new Date(),
+  //       capabilities: {
+  //         heartRate: true,
+  //         stepCount: true,
+  //         caloriesBurned: true,
+  //         sleep: true,
+  //         bloodOxygen: true,
+  //         ecg: true,
+  //         temperature: true
+  //       },
+  //       connectionSettings: {
+  //         connectionType: 'bluetooth',
+  //         autoSync: true,
+  //         syncInterval: 15,
+  //         dataPermissions: {
+  //           shareHealthData: true,
+  //           shareLocation: false,
+  //           shareSleepData: true
+  //         }
+  //       }
+  //     },
+  //     {
+  //       id: 2,
+  //       userId: 1,
+  //       deviceName: 'Fitbit Charge 5',
+  //       deviceType: 'tracker',
+  //       deviceModel: 'Charge 5',
+  //       manufacturer: 'Fitbit',
+  //       serialNumber: 'FB789012',
+  //       firmwareVersion: '2.0',
+  //       batteryLevel: 60,
+  //       isConnected: false,
+  //       lastSynced: null,
+  //       capabilities: {
+  //         heartRate: true,
+  //         stepCount: true,
+  //         caloriesBurned: true,
+  //         sleep: true,
+  //         bloodOxygen: true,
+  //         stress: true
+  //       },
+  //       connectionSettings: {
+  //         connectionType: 'bluetooth',
+  //         autoSync: true,
+  //         syncInterval: 30,
+  //         dataPermissions: {
+  //           shareHealthData: true,
+  //           shareLocation: false,
+  //           shareSleepData: true
+  //         }
+  //       }
+  //     }
+  //   ];
     
-    demoDevices.forEach(device => {
-      this.wearableDevices.set(device.id, device);
-      this.wearableDeviceId++;
-    });
+  //   demoDevices.forEach(device => {
+  //     this.wearableDevices.set(device.id, device);
+  //     this.wearableDeviceId++;
+  //   });
 
-    // Create demo reminders
-    const demoReminders: Reminder[] = [
-      {
-        id: 1,
-        userId: 1,
-        title: 'Take Medication',
-        description: '',
-        time: '8:00 AM & 8:00 PM',
-        frequency: 'daily',
-        isCompleted: false,
-        category: 'medication',
-        color: '#f44336'
-      },
-      {
-        id: 2,
-        userId: 1,
-        title: 'Drink Water',
-        description: '',
-        time: 'Every 2 hours',
-        frequency: 'hourly',
-        isCompleted: false,
-        category: 'hydration',
-        color: '#1e88e5'
-      },
-      {
-        id: 3,
-        userId: 1,
-        title: 'Meditation Session',
-        description: '',
-        time: '6:30 PM',
-        frequency: 'daily',
-        isCompleted: false,
-        category: 'wellness',
-        color: '#26a69a'
-      }
-    ];
+  //   // Create demo reminders
+  //   const demoReminders: Reminder[] = [
+  //     {
+  //       id: 1,
+  //       userId: 1,
+  //       title: 'Take Medication',
+  //       description: '',
+  //       time: '8:00 AM & 8:00 PM',
+  //       frequency: 'daily',
+  //       isCompleted: false,
+  //       category: 'medication',
+  //       color: '#f44336'
+  //     },
+  //     {
+  //       id: 2,
+  //       userId: 1,
+  //       title: 'Drink Water',
+  //       description: '',
+  //       time: 'Every 2 hours',
+  //       frequency: 'hourly',
+  //       isCompleted: false,
+  //       category: 'hydration',
+  //       color: '#1e88e5'
+  //     },
+  //     {
+  //       id: 3,
+  //       userId: 1,
+  //       title: 'Meditation Session',
+  //       description: '',
+  //       time: '6:30 PM',
+  //       frequency: 'daily',
+  //       isCompleted: false,
+  //       category: 'wellness',
+  //       color: '#26a69a'
+  //     }
+  //   ];
     
-    demoReminders.forEach(reminder => {
-      this.reminders.set(reminder.id, reminder);
-      this.reminderId++;
-    });
+  //   demoReminders.forEach(reminder => {
+  //     this.reminders.set(reminder.id, reminder);
+  //     this.reminderId++;
+  //   });
 
-    // Create demo goals
-    const demoGoals: Goal[] = [
-      {
-        id: 1,
-        userId: 1,
-        title: 'Exercise 5 days',
-        target: 5,
-        current: 3,
-        unit: 'days',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
-        category: 'exercise'
-      },
-      {
-        id: 2,
-        userId: 1,
-        title: 'Sleep 8+ hours',
-        target: 7,
-        current: 2,
-        unit: 'days',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
-        category: 'sleep'
-      },
-      {
-        id: 3,
-        userId: 1,
-        title: 'Meditation',
-        target: 7,
-        current: 4,
-        unit: 'days',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
-        category: 'meditation'
-      }
-    ];
+  //   // Create demo goals
+  //   const demoGoals: Goal[] = [
+  //     {
+  //       id: 1,
+  //       userId: 1,
+  //       title: 'Exercise 5 days',
+  //       target: 5,
+  //       current: 3,
+  //       unit: 'days',
+  //       startDate: new Date(),
+  //       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+  //       category: 'exercise'
+  //     },
+  //     {
+  //       id: 2,
+  //       userId: 1,
+  //       title: 'Sleep 8+ hours',
+  //       target: 7,
+  //       current: 2,
+  //       unit: 'days',
+  //       startDate: new Date(),
+  //       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+  //       category: 'sleep'
+  //     },
+  //     {
+  //       id: 3,
+  //       userId: 1,
+  //       title: 'Meditation',
+  //       target: 7,
+  //       current: 4,
+  //       unit: 'days',
+  //       startDate: new Date(),
+  //       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+  //       category: 'meditation'
+  //     }
+  //   ];
     
-    demoGoals.forEach(goal => {
-      this.goals.set(goal.id, goal);
-      this.goalId++;
-    });
+  //   demoGoals.forEach(goal => {
+  //     this.goals.set(goal.id, goal);
+  //     this.goalId++;
+  //   });
 
-    // Create demo AI insights
-    const demoInsights: AiInsight[] = [
-      {
-        id: 1,
-        userId: 1,
-        title: 'Stress Management Recommendation',
-        description: 'Your heart rate variability has decreased this week, which may indicate increased stress levels. Consider adding 10-minute meditation sessions in the morning.',
-        category: 'stress',
-        action: 'View Plan',
-        createdAt: new Date(),
-        isRead: false
-      },
-      {
-        id: 2,
-        userId: 1,
-        title: 'Nutrition Improvement',
-        description: 'Based on your food logging patterns, we notice you may benefit from increasing protein intake in the morning. This could help sustain energy levels throughout the day.',
-        category: 'nutrition',
-        action: 'See Suggestions',
-        createdAt: new Date(),
-        isRead: false
-      },
-      {
-        id: 3,
-        userId: 1,
-        title: 'Fitness Progress Alert',
-        description: "Great job on your consistency! You've met your step goal 5 days in a row. Consider increasing your daily step target by 10% to continue improving cardiovascular health.",
-        category: 'fitness',
-        action: 'Adjust Goals',
-        createdAt: new Date(),
-        isRead: false
-      }
-    ];
+  //   // Create demo AI insights
+  //   const demoInsights: AiInsight[] = [
+  //     {
+  //       id: 1,
+  //       userId: 1,
+  //       title: 'Stress Management Recommendation',
+  //       description: 'Your heart rate variability has decreased this week, which may indicate increased stress levels. Consider adding 10-minute meditation sessions in the morning.',
+  //       category: 'stress',
+  //       action: 'View Plan',
+  //       createdAt: new Date(),
+  //       isRead: false
+  //     },
+  //     {
+  //       id: 2,
+  //       userId: 1,
+  //       title: 'Nutrition Improvement',
+  //       description: 'Based on your food logging patterns, we notice you may benefit from increasing protein intake in the morning. This could help sustain energy levels throughout the day.',
+  //       category: 'nutrition',
+  //       action: 'See Suggestions',
+  //       createdAt: new Date(),
+  //       isRead: false
+  //     },
+  //     {
+  //       id: 3,
+  //       userId: 1,
+  //       title: 'Fitness Progress Alert',
+  //       description: "Great job on your consistency! You've met your step goal 5 days in a row. Consider increasing your daily step target by 10% to continue improving cardiovascular health.",
+  //       category: 'fitness',
+  //       action: 'Adjust Goals',
+  //       createdAt: new Date(),
+  //       isRead: false
+  //     }
+  //   ];
     
-    demoInsights.forEach(insight => {
-      this.aiInsights.set(insight.id, insight);
-      this.aiInsightId++;
-    });
+  //   demoInsights.forEach(insight => {
+  //     this.aiInsights.set(insight.id, insight);
+  //     this.aiInsightId++;
+  //   });
 
-    // Create demo health data
-    const today = new Date();
-    const demoHealthData: HealthData = {
-      id: 1,
-      userId: 1,
-      date: today,
-      steps: 8456,
-      activeMinutes: 42,
-      calories: 1450,
-      sleepHours: 7.33, // 7h 20m
-      sleepQuality: 72,
-      heartRate: 68,
-      healthScore: 85,
-      stressLevel: 35,
-      healthMetrics: {
-        activityLevel: 3,
-        stepsGoal: 10000,
-        caloriesGoal: 2500,
-        sleepGoal: 8,
-        hydrationGoal: 2000,
-        heartRateMin: 58,
-        heartRateMax: 142,
-        deepSleep: 1.8,
-        remSleep: 1.5,
-        bloodOxygen: 98,
-        temperature: 36.6,
-        systolic: 120,
-        diastolic: 80
-      }
-    };
+  //   // Create demo health data
+  //   const today = new Date();
+  //   const demoHealthData: HealthData = {
+  //     id: 1,
+  //     userId: 1,
+  //     date: today,
+  //     steps: 8456,
+  //     activeMinutes: 42,
+  //     calories: 1450,
+  //     sleepHours: 7.33, // 7h 20m
+  //     sleepQuality: 72,
+  //     heartRate: 68,
+  //     healthScore: 85,
+  //     stressLevel: 35,
+  //     healthMetrics: {
+  //       activityLevel: 3,
+  //       stepsGoal: 10000,
+  //       caloriesGoal: 2500,
+  //       sleepGoal: 8,
+  //       hydrationGoal: 2000,
+  //       heartRateMin: 58,
+  //       heartRateMax: 142,
+  //       deepSleep: 1.8,
+  //       remSleep: 1.5,
+  //       bloodOxygen: 98,
+  //       temperature: 36.6,
+  //       systolic: 120,
+  //       diastolic: 80
+  //     }
+  //   };
     
-    this.healthData.set(demoHealthData.id, demoHealthData);
-    this.healthDataId++;
+  //   this.healthData.set(demoHealthData.id, demoHealthData);
+  //   this.healthDataId++;
 
-    // Create some historical health data for the past week
-    for (let i = 1; i <= 7; i++) {
-      const pastDate = new Date(today);
-      pastDate.setDate(today.getDate() - i);
+  //   // Create some historical health data for the past week
+  //   for (let i = 1; i <= 7; i++) {
+  //     const pastDate = new Date(today);
+  //     pastDate.setDate(today.getDate() - i);
       
-      const pastHealthData: HealthData = {
-        id: this.healthDataId++,
-        userId: 1,
-        date: pastDate,
-        steps: 7000 + Math.floor(Math.random() * 4000),
-        activeMinutes: 30 + Math.floor(Math.random() * 40),
-        calories: 1200 + Math.floor(Math.random() * 800),
-        sleepHours: 6 + Math.random() * 3,
-        sleepQuality: 60 + Math.floor(Math.random() * 30),
-        heartRate: 65 + Math.floor(Math.random() * 15),
-        healthScore: 75 + Math.floor(Math.random() * 15),
-        stressLevel: 30 + Math.floor(Math.random() * 30),
-        healthMetrics: {
-          activityLevel: Math.floor(Math.random() * 3) + 2, // 2-4
-          stepsGoal: 10000,
-          caloriesGoal: 2500,
-          sleepGoal: 8,
-          hydrationGoal: 2000,
-          heartRateMin: 60 + Math.floor(Math.random() * 10) - 5,
-          heartRateMax: 120 + Math.floor(Math.random() * 40),
-          deepSleep: Math.round((Math.random() * 0.8 + 1.2) * 10) / 10, // 1.2-2.0
-          remSleep: Math.round((Math.random() * 0.7 + 1.1) * 10) / 10, // 1.1-1.8
-          bloodOxygen: 95 + Math.floor(Math.random() * 5),
-          temperature: Math.round((36.5 + (Math.random() * 0.8 - 0.3)) * 10) / 10
-        }
-      };
+  //     const pastHealthData: HealthData = {
+  //       id: this.healthDataId++,
+  //       userId: 1,
+  //       date: pastDate,
+  //       steps: 7000 + Math.floor(Math.random() * 4000),
+  //       activeMinutes: 30 + Math.floor(Math.random() * 40),
+  //       calories: 1200 + Math.floor(Math.random() * 800),
+  //       sleepHours: 6 + Math.random() * 3,
+  //       sleepQuality: 60 + Math.floor(Math.random() * 30),
+  //       heartRate: 65 + Math.floor(Math.random() * 15),
+  //       healthScore: 75 + Math.floor(Math.random() * 15),
+  //       stressLevel: 30 + Math.floor(Math.random() * 30),
+  //       healthMetrics: {
+  //         activityLevel: Math.floor(Math.random() * 3) + 2, // 2-4
+  //         stepsGoal: 10000,
+  //         caloriesGoal: 2500,
+  //         sleepGoal: 8,
+  //         hydrationGoal: 2000,
+  //         heartRateMin: 60 + Math.floor(Math.random() * 10) - 5,
+  //         heartRateMax: 120 + Math.floor(Math.random() * 40),
+  //         deepSleep: Math.round((Math.random() * 0.8 + 1.2) * 10) / 10, // 1.2-2.0
+  //         remSleep: Math.round((Math.random() * 0.7 + 1.1) * 10) / 10, // 1.1-1.8
+  //         bloodOxygen: 95 + Math.floor(Math.random() * 5),
+  //         temperature: Math.round((36.5 + (Math.random() * 0.8 - 0.3)) * 10) / 10
+  //       }
+  //     };
       
-      this.healthData.set(pastHealthData.id, pastHealthData);
-    }
-  }
+  //     this.healthData.set(pastHealthData.id, pastHealthData);
+  //   }
+  // }
 
   // Generate demo data for a user
   async generateDemoData(userId: number): Promise<void> {

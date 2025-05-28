@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import * as schema from "@shared/schema";
 
 // Use MONGODB_URI instead of DATABASE_URL
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wellnessage';
+const MONGODB_URI = process.env.MONGODB_ATLAS_URI || 'mongodb://localhost:27017/wellnessage';
 
 // Connection options
 const options = {
