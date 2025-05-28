@@ -15,22 +15,41 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWeeklyHealthData } from '@/hooks/use-weekly-health-data';
 import { useMonthlyHealthData } from '@/hooks/use-monthly-health-data';
+import { useThreeMonthHealthData } from '@/hooks/use-three-month-health-data';
+import { useSixMonthHealthData } from '@/hooks/use-six-month-health-data';
 import { ActivityIcon, HeartIcon, MoonIcon, DropletIcon, FlameIcon, BatteryFullIcon, BarChart3Icon, CalendarIcon } from 'lucide-react';
 
-type TimePeriod = 'week' | 'month';
+type TimePeriod = 'week' | 'month' | 'three-month' | 'six-month';
 
 export function HealthTrends() {
   const [selectedMetric, setSelectedMetric] = useState('steps');
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('month');
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('week');
   
   const { processedData: weeklyData, isLoading: isWeeklyLoading, error: weeklyError } = useWeeklyHealthData();
   const { processedData: monthlyData, isLoading: isMonthlyLoading, error: monthlyError } = useMonthlyHealthData();
+  const { processedData: threeMonthData, isLoading: isThreeMonthLoading, error: threeMonthError } = useThreeMonthHealthData();
+  const { processedData: sixMonthData, isLoading: isSixMonthLoading, error: sixMonthError } = useSixMonthHealthData();
   
-  const isLoading = timePeriod === 'week' ? isWeeklyLoading : isMonthlyLoading;
-  const error = timePeriod === 'week' ? weeklyError : monthlyError;
-  const processedData = timePeriod === 'week' ? weeklyData : monthlyData;
+  const isLoading = 
+    timePeriod === 'week' ? isWeeklyLoading :
+    timePeriod === 'month' ? isMonthlyLoading :
+    timePeriod === 'three-month' ? isThreeMonthLoading :
+    isSixMonthLoading;
+    
+  const error = 
+    timePeriod === 'week' ? weeklyError :
+    timePeriod === 'month' ? monthlyError :
+    timePeriod === 'three-month' ? threeMonthError :
+    sixMonthError;
+    
+  const processedData = 
+    timePeriod === 'week' ? weeklyData :
+    timePeriod === 'month' ? monthlyData :
+    timePeriod === 'three-month' ? threeMonthData :
+    sixMonthData;
   
   // Format data for charts
   const chartData = processedData.labels.map((label, index) => {
@@ -192,26 +211,17 @@ export function HealthTrends() {
               View your health data for the selected time period
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant={timePeriod === 'week' ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod('week')}
-              className="flex items-center gap-1.5"
-            >
-              <CalendarIcon size={16} />
-              <span>Last Week</span>
-            </Button>
-            <Button
-              variant={timePeriod === 'month' ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTimePeriod('month')}
-              className="flex items-center gap-1.5"
-            >
-              <CalendarIcon size={16} />
-              <span>Last 30 Days</span>
-            </Button>
-          </div>
+          <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select time period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Last Week</SelectItem>
+              <SelectItem value="month">Last 30 Days</SelectItem>
+              <SelectItem value="three-month">Last 3 Months</SelectItem>
+              <SelectItem value="six-month">Last 6 Months</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
       

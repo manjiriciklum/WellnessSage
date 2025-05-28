@@ -502,6 +502,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(monthlyData);
   });
 
+  app.get("/api/users/:userId/health-data/three-month", async (req, res) => {
+    const userId = req.params.userId;
+    // Log the audit event
+    console.log(`AUDIT: view healthData multiple by user ${userId} (three-month data)`);
+    
+    // Use MongoDB storage if the ID is a MongoDB ObjectId
+    const storageToUse = /^[0-9a-fA-F]{24}$/.test(userId) ? mongoStorage : storage;
+    const healthData = await storageToUse.getHealthDataByUserId(userId);
+    
+    // Filter to only get the last 3 months' data
+    const today = new Date();
+    const threeMonthsAgo = new Date(today);
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
+    threeMonthsAgo.setHours(0, 0, 0, 0);
+    
+    const threeMonthData = healthData.filter(data => {
+      if (!data.date) return false;
+      const dataDate = new Date(data.date);
+      return dataDate >= threeMonthsAgo && dataDate <= today;
+    });
+    
+    // Sort by date, oldest first
+    threeMonthData.sort((a, b) => {
+      if (!a.date || !b.date) return 0;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+    
+    return res.json(threeMonthData);
+  });
+
+  app.get("/api/users/:userId/health-data/six-month", async (req, res) => {
+    const userId = req.params.userId;
+    // Log the audit event
+    console.log(`AUDIT: view healthData multiple by user ${userId} (six-month data)`);
+    
+    // Use MongoDB storage if the ID is a MongoDB ObjectId
+    const storageToUse = /^[0-9a-fA-F]{24}$/.test(userId) ? mongoStorage : storage;
+    const healthData = await storageToUse.getHealthDataByUserId(userId);
+    
+    // Filter to only get the last 6 months' data
+    const today = new Date();
+    const sixMonthsAgo = new Date(today);
+    sixMonthsAgo.setMonth(today.getMonth() - 6);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    
+    const sixMonthData = healthData.filter(data => {
+      if (!data.date) return false;
+      const dataDate = new Date(data.date);
+      return dataDate >= sixMonthsAgo && dataDate <= today;
+    });
+    
+    // Sort by date, oldest first
+    sixMonthData.sort((a, b) => {
+      if (!a.date || !b.date) return 0;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+    
+    return res.json(sixMonthData);
+  });
+
+  // Generate test health data for a user
+  app.post("/api/users/:userId/health-data/generate", async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      console.log(`Generating test health data for user ${userId}`);
+      
+      // Use MongoDB storage if the ID is a MongoDB ObjectId
+      const storageToUse = /^[0-9a-fA-F]{24}$/.test(userId) ? mongoStorage : storage;
+      
+      // Generate data for the last 6 months
+      const today = new Date();
+      const sixMonthsAgo = new Date(today);
+      sixMonthsAgo.setMonth(today.getMonth() - 6);
+      
+      const healthData = [];
+      for (let d = new Date(sixMonthsAgo); d <= today; d.setDate(d.getDate() + 1)) {
+        const data = {
+          userId: /^[0-9a-fA-F]{24}$/.test(userId) ? userId : parseInt(userId),
+          date: new Date(d),
+          steps: Math.floor(Math.random() * 10000) + 2000,
+          activeMinutes: Math.floor(Math.random() * 60) + 30,
+          calories: Math.floor(Math.random() * 500) + 1500,
+          sleepHours: Math.floor(Math.random() * 4) + 6,
+          sleepQuality: Math.floor(Math.random() * 3) + 7,
+          heartRate: Math.floor(Math.random() * 30) + 60,
+          stressLevel: Math.floor(Math.random() * 5) + 1,
+          healthMetrics: {}
+        };
+        
+        // Calculate health score
+        data.healthScore = calculateHealthScore(data);
+        
+        // Create the health data entry
+        const createdData = await storageToUse.createHealthData(data);
+        healthData.push(createdData);
+      }
+      
+      return res.status(201).json(healthData);
+    } catch (error) {
+      console.error('Error generating test health data:', error);
+      return res.status(500).json({ message: "Error generating test health data" });
+    }
+  });
+
   // Wearable devices routes
   app.get("/api/users/:userId/wearable-devices", async (req, res) => {
     const userId = parseInt(req.params.userId);
