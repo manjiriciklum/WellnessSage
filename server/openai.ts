@@ -179,7 +179,7 @@ export async function chatWithHealthAssistant(userId: number, message: string): 
       return content || "I'm sorry, I couldn't generate a response. Please try again.";
     } 
     // If OpenAI is not available, try Ollama
-    else if (process.env.OLLAMA_HOST) {
+  else if (process.env.OLLAMA_HOST) {
       console.log('Attempting to use Ollama at:', process.env.OLLAMA_HOST);
       try {
         const ollama = new ChatOllama({
@@ -187,73 +187,207 @@ export async function chatWithHealthAssistant(userId: number, message: string): 
           model: "llama3:8b"
         });
 
-        // First, extract symptoms from user input
-        const symptomResponse = await ollama.call([
-          new SystemMessage(`You are a medical symptom extractor. Extract ONLY the symptoms from the given text.
-Rules:
-1. Return ONLY the symptoms, nothing else
-2. Use simple, clear symptom names
-3. If multiple symptoms, separate them with commas
-4. Do not include any explanations or additional text
+        // 1️⃣ Enhanced prompt to extract both symptoms and location
+        const extractionPrompt = `
+You are a medical and geographic assistant AI. Extract the following details from the user input:
+- Symptoms (simple names, comma-separated)
+- Location information (extract and classify area, city, state, and country from natural language)
 
-Example inputs and outputs:
-Input: "I have been experiencing severe headache and fever for the last 2 days"
-Output: headache, fever
+Respond ONLY in this JSON format:
 
-Input: "My stomach hurts and I feel nauseous"
-Output: stomach pain, nausea
+{
+  "symptoms": ["symptom1", "symptom2"],
+  "location": {
+    "name": "extracted location name",
+    "type": "city | state | country | area | unknown",
+    "area": "area name",
+    "city": "city name",
+    "state": "state name",
+    "country": "country name"
+  }
+}
 
-Input: "I'm coughing a lot and my throat is sore"
-Output: cough, sore throat`),
-          new HumanMessage(message)
+Guidelines:
+- Extract symptoms as simple terms (e.g., "headache", "fever", "cough")
+- For location:
+  * First identify the location type (city, state, country, or area)
+  * Then extract the location name
+  * Place the location in the correct field based on its type
+  * Examples:
+    - "I'm in New York" → type: "city", city: "New York"
+    - "Living in California" → type: "state", state: "California"
+    - "From USA" → type: "country", country: "USA"
+    - "In West Village" → type: "area", area: "West Village"
+  * If a field is not provided, leave it as an empty string
+  * If location type is unknown, set type to "unknown" and leave all fields empty
+  * Be smart about location extraction:
+    - If someone says "I'm in New York", extract "New York" as the city
+    - If someone mentions a state without a city, leave city empty but fill the state
+    - If someone mentions a country without other details, fill only the country field
+    - For cities, extract the full name (e.g., "San Francisco" not just "SF")
+
+Input:
+"${message}"
+        `;
+
+        const extractionResponse = await ollama.call([
+          new SystemMessage("You extract medical symptoms and classify locations from natural language."),
+          new HumanMessage(extractionPrompt)
         ]);
 
-        console.log('Extracted symptoms:', symptomResponse.content);
-        
-        // Get the symptoms as an array
-        const symptoms = (symptomResponse.content as string)
-          .split(',')
-          .map(s => s.trim().toLowerCase())
-          .filter(s => s.length > 0);
+        console.log('Extracted info:', extractionResponse.content);
 
-        // Get all doctors from storage
+        const {
+          symptoms = [],
+          location = {
+            name: "",
+            type: "unknown",
+            area: "",
+            city: "",
+            state: "",
+            country: ""
+          }
+        } = JSON.parse(extractionResponse.content?.toString() || "{}");
+
+        console.log('Parsed location:', location);
+
+        const formattedSymptoms = symptoms.map((s: string) => s.trim().toLowerCase());
+        console.log('Formatted symptoms:', formattedSymptoms);
+
+        // 2️⃣ Get all doctors
         const doctorStorage = isConnected() ? mongoStorage : storage;
         console.log('Using storage:', isConnected() ? 'MongoDB' : 'Memory');
-        
         const allDoctors = await doctorStorage.getAllDoctors();
-        console.log('Raw doctor data:', JSON.stringify(allDoctors[0], null, 2));
-        
-        // Filter doctors based on symptoms
+
+        // 3️⃣ Filter doctors by symptoms and location
         const matchingDoctors = allDoctors.filter((doctor: Doctor) => {
-          console.log('Doctor in filter:', JSON.stringify(doctor, null, 2));
-          return symptoms.some(symptom => 
-            (doctor as any).symptoms?.some((docSymptom: string) => 
-              docSymptom.toLowerCase().includes(symptom.toLowerCase())
+          // First check if doctor has any of the user's symptoms
+          const matchesSymptom = formattedSymptoms.some((symptom: string) =>
+            (doctor as any).symptoms?.some((docSymptom: string) =>
+              docSymptom.toLowerCase().includes(symptom)
             )
           );
+
+          if (!matchesSymptom) {
+            console.log(`Doctor ${(doctor as any).name} doesn't match symptoms`);
+            return false;
+          }
+
+          // If no location specified, return all doctors with matching symptoms
+          if (!location.type || location.type === 'unknown') {
+            console.log('No location type specified, returning all doctors with matching symptoms');
+            return true;
+          }
+
+          // More precise location matching based on location type
+          const doctorLocation = {
+            city: (doctor as any).city?.toLowerCase().trim() || '',
+            state: (doctor as any).state?.toLowerCase().trim() || '',
+            country: (doctor as any).country?.toLowerCase().trim() || '',
+            area: (doctor as any).area?.toLowerCase().trim() || ''
+          };
+
+          const userLocation = {
+            city: location.city?.toLowerCase().trim() || '',
+            state: location.state?.toLowerCase().trim() || '',
+            country: location.country?.toLowerCase().trim() || '',
+            area: location.area?.toLowerCase().trim() || ''
+          };
+
+          console.log('Comparing locations:', {
+            doctor: doctorLocation,
+            user: userLocation,
+            doctorName: (doctor as any).name,
+            locationType: location.type
+          });
+
+          // Match based on the specific location type provided
+          switch (location.type) {
+            case 'city':
+              return doctorLocation.city === userLocation.city;
+            case 'state':
+              return doctorLocation.state === userLocation.state;
+            case 'country':
+              return doctorLocation.country === userLocation.country;
+            case 'area':
+              return doctorLocation.area === userLocation.area;
+            default:
+              return false;
+          }
         });
 
-        // Format the response with matching doctors
-        const doctorList = matchingDoctors.map((doctor: Doctor) => {
-          console.log('Doctor being formatted:', JSON.stringify(doctor, null, 2));
-          
-          return `Dr. ${(doctor as any).name || 'Name not available'}
-Specialty: ${doctor.specialty}
-Area: ${(doctor as any).area || 'Not specified'}
-City: ${(doctor as any).city || 'Not specified'}
-Availability: ${(doctor as any).available ? 'Available' : 'Not Available'}`
-        }).join('\n\n');
+        console.log('Matching doctors count:', matchingDoctors.length);
 
-        if (matchingDoctors.length === 0) {
-          return "I couldn't find any doctors matching your symptoms. Please try describing your symptoms differently or consult a general practitioner.";
+        // Sort doctors by relevance (exact matches first)
+        const sortedDoctors = matchingDoctors.sort((a: Doctor, b: Doctor) => {
+          // Then sort by number of matching symptoms
+          const aMatchingSymptoms = formattedSymptoms.filter((symptom: string) =>
+            (a as any).symptoms?.some((s: string) => s.toLowerCase().includes(symptom))
+          ).length;
+
+          const bMatchingSymptoms = formattedSymptoms.filter((symptom: string) =>
+            (b as any).symptoms?.some((s: string) => s.toLowerCase().includes(symptom))
+          ).length;
+
+          return bMatchingSymptoms - aMatchingSymptoms;
+        });
+
+        console.log('Sorted doctors count:', sortedDoctors.length);
+
+        // 4️⃣ Format matched doctor info
+        const doctorList = sortedDoctors.map((doctor: Doctor) => `
+Dr. ${(doctor as any).name || 'Name not available'}
+Specialty: ${doctor.specialty}
+Location: ${[
+  (doctor as any).area,
+  (doctor as any).city,
+  (doctor as any).state,
+  (doctor as any).country
+].filter(Boolean).join(', ')}
+Symptoms: ${(doctor as any).symptoms?.join(', ')}
+Availability: ${(doctor as any).available ? 'Available' : 'Not Available'}
+        `).join('\n\n');
+
+        // 5️⃣ Response handling
+        if (sortedDoctors.length === 0) {
+          console.log('No matching doctors found, trying to find doctors by symptoms only');
+          // Try to find doctors by symptoms only if no location match is found
+          const doctorsBySymptoms = allDoctors.filter((doctor: Doctor) =>
+            formattedSymptoms.some((symptom: string) =>
+              (doctor as any).symptoms?.some((docSymptom: string) =>
+                docSymptom.toLowerCase().includes(symptom)
+              )
+            )
+          );
+
+          if (doctorsBySymptoms.length > 0) {
+            const locationInfo = location.name || [location.area, location.city, location.state, location.country].filter(Boolean).join(', ');
+            return `I found doctors who specialize in your symptoms, but none in ${locationInfo}. Here are some doctors who can help with your symptoms:\n\n${
+              doctorsBySymptoms.map((doctor: Doctor) => `
+Dr. ${(doctor as any).name || 'Name not available'}
+Specialty: ${doctor.specialty}
+Location: ${[
+  (doctor as any).area,
+  (doctor as any).city,
+  (doctor as any).state,
+  (doctor as any).country
+].filter(Boolean).join(', ')}
+Symptoms: ${(doctor as any).symptoms?.join(', ')}
+Availability: ${(doctor as any).available ? 'Available' : 'Not Available'}
+              `).join('\n\n')
+            }\n\nPlease consult a healthcare professional for proper diagnosis.`;
+          }
+          
+          return "I couldn't find any doctors matching your symptoms. Please try providing different symptoms or check your location info.";
         }
 
-        const response = `Based on your symptoms (${symptoms.join(', ')}), here are some matching doctors:\n\n${doctorList}\n\nRemember, this is just a suggestion. Please consult with a healthcare professional for proper medical advice.`;
-        
-        // Log successful chat
-        logAuditEvent(userId, 'complete', 'healthChat', userId.toString(), `Doctors found successfully for symptoms: ${symptoms.join(', ')}`);
-        
-        return response;
+        const locationInfo = location.name || [location.area, location.city, location.state, location.country].filter(Boolean).join(', ');
+
+        const finalResponse = `Based on your symptoms (${formattedSymptoms.join(', ')}) and location (${locationInfo}), here are matching doctors:\n\n${doctorList}\n\nPlease consult a healthcare professional for proper diagnosis.`;
+
+        logAuditEvent(userId, 'complete', 'healthChat', userId.toString(), `Doctors found successfully for symptoms: ${formattedSymptoms.join(', ')}`);
+        return finalResponse;
+
       } catch (ollamaError) {
         console.error('Error with Ollama:', ollamaError);
         if (ollamaError instanceof Error) {
