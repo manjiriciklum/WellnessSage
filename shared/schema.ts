@@ -74,7 +74,23 @@ export const insertHealthDataSchema = createInsertSchema(healthData).pick({
   healthMetrics: true
 });
 
+// MongoDB Health Data Schema
+export const mongoHealthDataSchema = z.object({
+  userId: z.union([z.string(), z.number()]),
+  date: z.date().nullable(),
+  steps: z.number().nullable(),
+  activeMinutes: z.number().nullable(),
+  calories: z.number().nullable(),
+  sleepHours: z.number().nullable(),
+  sleepQuality: z.number().nullable(),
+  heartRate: z.number().nullable(),
+  healthScore: z.number().nullable(),
+  stressLevel: z.number().nullable(),
+  healthMetrics: z.any().default({})
+});
+
 export type InsertHealthData = z.infer<typeof insertHealthDataSchema>;
+export type MongoHealthData = z.infer<typeof mongoHealthDataSchema>;
 export type HealthData = typeof healthData.$inferSelect;
 
 // Wearable Devices Model

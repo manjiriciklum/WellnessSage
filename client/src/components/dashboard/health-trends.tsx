@@ -15,12 +15,41 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWeeklyHealthData } from '@/hooks/use-weekly-health-data';
-import { ActivityIcon, HeartIcon, MoonIcon, DropletIcon, FlameIcon, BatteryFullIcon, BarChart3Icon } from 'lucide-react';
+import { useMonthlyHealthData } from '@/hooks/use-monthly-health-data';
+import { useThreeMonthHealthData } from '@/hooks/use-three-month-health-data';
+import { useSixMonthHealthData } from '@/hooks/use-six-month-health-data';
+import { ActivityIcon, HeartIcon, MoonIcon, DropletIcon, FlameIcon, BatteryFullIcon, BarChart3Icon, CalendarIcon } from 'lucide-react';
+
+type TimePeriod = 'week' | 'month' | 'three-month' | 'six-month';
 
 export function HealthTrends() {
-  const { processedData, isLoading, error } = useWeeklyHealthData();
   const [selectedMetric, setSelectedMetric] = useState('steps');
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('week');
+  
+  const { processedData: weeklyData, isLoading: isWeeklyLoading, error: weeklyError } = useWeeklyHealthData();
+  const { processedData: monthlyData, isLoading: isMonthlyLoading, error: monthlyError } = useMonthlyHealthData();
+  const { processedData: threeMonthData, isLoading: isThreeMonthLoading, error: threeMonthError } = useThreeMonthHealthData();
+  const { processedData: sixMonthData, isLoading: isSixMonthLoading, error: sixMonthError } = useSixMonthHealthData();
+  
+  const isLoading = 
+    timePeriod === 'week' ? isWeeklyLoading :
+    timePeriod === 'month' ? isMonthlyLoading :
+    timePeriod === 'three-month' ? isThreeMonthLoading :
+    isSixMonthLoading;
+    
+  const error = 
+    timePeriod === 'week' ? weeklyError :
+    timePeriod === 'month' ? monthlyError :
+    timePeriod === 'three-month' ? threeMonthError :
+    sixMonthError;
+    
+  const processedData = 
+    timePeriod === 'week' ? weeklyData :
+    timePeriod === 'month' ? monthlyData :
+    timePeriod === 'three-month' ? threeMonthData :
+    sixMonthData;
   
   // Format data for charts
   const chartData = processedData.labels.map((label, index) => {
@@ -48,6 +77,7 @@ export function HealthTrends() {
   
   // Choose chart type based on the metric
   const isBarMetric = ['steps', 'calories', 'activeMinutes'].includes(selectedMetric);
+  
   const renderChart = () => {
     // Improved margins for the chart to prevent label overlapping
     const chartMargins = { top: 20, right: 30, left: 30, bottom: 20 };
@@ -99,44 +129,44 @@ export function HealthTrends() {
           />
         </BarChart>
       );
-    } else {
-      return (
-        <LineChart
-          data={chartData}
-          margin={chartMargins}
-        >
-          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-          <XAxis 
-            dataKey="name" 
-            tick={{ fontSize: 12 }}
-            tickLine={{ stroke: '#e5e7eb' }}
-            axisLine={{ stroke: '#e5e7eb' }}
-          />
-          <YAxis 
-            width={45}
-            unit={metricConfig[selectedMetric].unit ? ` ${metricConfig[selectedMetric].unit}` : ''}
-            tickLine={{ stroke: '#e5e7eb' }}
-            axisLine={{ stroke: '#e5e7eb' }}
-            tick={{ fontSize: 12 }}
-          />
-          <Tooltip 
-            contentStyle={tooltipStyle}
-            formatter={(value) => [`${value} ${metricConfig[selectedMetric].unit}`, metricConfig[selectedMetric].name]} 
-            labelStyle={{ fontWeight: 'bold', marginBottom: '5px' }}
-          />
-          <Legend verticalAlign="top" height={36} />
-          <Line 
-            name={metricConfig[selectedMetric].name}
-            type="monotone" 
-            dataKey={selectedMetric} 
-            stroke={metricConfig[selectedMetric].color}
-            strokeWidth={2}
-            activeDot={{ r: 6 }}
-            dot={{ r: 3, strokeWidth: 1 }}
-          />
-        </LineChart>
-      );
     }
+    
+    return (
+      <LineChart
+        data={chartData}
+        margin={chartMargins}
+      >
+        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+        <XAxis 
+          dataKey="name" 
+          tick={{ fontSize: 12 }}
+          tickLine={{ stroke: '#e5e7eb' }}
+          axisLine={{ stroke: '#e5e7eb' }}
+        />
+        <YAxis 
+          width={45}
+          unit={metricConfig[selectedMetric].unit ? ` ${metricConfig[selectedMetric].unit}` : ''}
+          tickLine={{ stroke: '#e5e7eb' }}
+          axisLine={{ stroke: '#e5e7eb' }}
+          tick={{ fontSize: 12 }}
+        />
+        <Tooltip 
+          contentStyle={tooltipStyle}
+          formatter={(value) => [`${value} ${metricConfig[selectedMetric].unit}`, metricConfig[selectedMetric].name]} 
+          labelStyle={{ fontWeight: 'bold', marginBottom: '5px' }}
+        />
+        <Legend verticalAlign="top" height={36} />
+        <Line 
+          name={metricConfig[selectedMetric].name}
+          type="monotone" 
+          dataKey={selectedMetric} 
+          stroke={metricConfig[selectedMetric].color}
+          strokeWidth={2}
+          activeDot={{ r: 6 }}
+          dot={{ r: 3, strokeWidth: 1 }}
+        />
+      </LineChart>
+    );
   };
   
   if (isLoading) {
@@ -164,7 +194,7 @@ export function HealthTrends() {
       <Card className="shadow-sm">
         <CardContent className="p-5">
           <p className="text-neutral-600 dark:text-neutral-200">
-            No health data available for this week. Data will appear as it's collected from your wearable devices.
+            No health data available. Data will appear as it's collected from your wearable devices.
           </p>
         </CardContent>
       </Card>
@@ -174,10 +204,25 @@ export function HealthTrends() {
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium">Your Weekly Health Data</CardTitle>
-        <CardDescription>
-          View your health data for the current week
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-base font-medium">Your Health Data</CardTitle>
+            <CardDescription>
+              View your health data for the selected time period
+            </CardDescription>
+          </div>
+          <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select time period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Last Week</SelectItem>
+              <SelectItem value="month">Last 30 Days</SelectItem>
+              <SelectItem value="three-month">Last 3 Months</SelectItem>
+              <SelectItem value="six-month">Last 6 Months</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       
       <CardContent>

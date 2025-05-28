@@ -237,7 +237,7 @@ export class MongoStorage implements IStorage {
         ? new mongoose.Types.ObjectId(insertData.userId)
         : new mongoose.Types.ObjectId(insertData.userId.toString(16).padStart(24, '0'));
 
-        // Calculate health score if it's null
+      // Calculate health score if it's null
       const healthScore = insertData.healthScore ?? calculateHealthScore(insertData);
       
       const healthData = new models.HealthData({
