@@ -130,7 +130,7 @@ export default function StressManagementPage() {
       <div className="space-y-8">
         {/* Header Section */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">🌿 Stress Management Wellness Plan</h1>
+          <h1 className="text-xl font-bold mb-2">🌿 Stress Management Wellness Plan</h1>
           <div className="flex justify-center gap-8 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -146,7 +146,7 @@ export default function StressManagementPage() {
         {/* Goals Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Target className="h-5 w-5" />
               Goals
             </CardTitle>
@@ -163,7 +163,7 @@ export default function StressManagementPage() {
         {/* Daily Practices Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Clock className="h-5 w-5" />
               Daily Practices
             </CardTitle>
@@ -192,7 +192,7 @@ export default function StressManagementPage() {
         {/* Weekly Practices Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Calendar className="h-5 w-5" />
               Weekly Practices
             </CardTitle>
@@ -221,7 +221,7 @@ export default function StressManagementPage() {
         {/* Monitoring Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Brain className="h-5 w-5" />
               Monitoring & Reflection
             </CardTitle>
@@ -242,7 +242,7 @@ export default function StressManagementPage() {
         {/* Coping Strategies Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Heart className="h-5 w-5" />
               Coping Strategies Toolbox
             </CardTitle>
@@ -262,7 +262,7 @@ export default function StressManagementPage() {
         {/* Professional Support Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="h-5 w-5" />
               Professional Support
             </CardTitle>

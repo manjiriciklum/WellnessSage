@@ -216,7 +216,7 @@ export function HealthTrends() {
               <SelectValue placeholder="Select time period" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">Last Week</SelectItem>
+              <SelectItem value="week">Current Week</SelectItem>
               <SelectItem value="month">Last 30 Days</SelectItem>
               <SelectItem value="three-month">Last 3 Months</SelectItem>
               <SelectItem value="six-month">Last 6 Months</SelectItem>
