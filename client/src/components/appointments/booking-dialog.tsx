@@ -123,12 +123,36 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess, appointmentT
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Book {appointmentType === 'video' ? 'Video' : ''} Appointment with Dr. {doctor.name}</DialogTitle>
+          <DialogTitle>Book {appointmentType === 'video' ? 'Video' : ''} Appointment with {doctor.name}</DialogTitle>
           <DialogDescription>
             Select your preferred date and time slot for the appointment.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+
+        {appointmentType === 'in-clinic' && (
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Select value={location} onValueChange={setLocation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctor.locations?.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </SelectItem>
+                  )) || (
+                    <>
+                      <SelectItem value="main">Main Clinic</SelectItem>
+                      <SelectItem value="satellite">Satellite Clinic</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label>Date</Label>
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -170,30 +194,7 @@ export function BookingDialog({ doctor, isOpen, onClose, onSuccess, appointmentT
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {appointmentType === 'in-clinic' && (
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctor.locations?.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </SelectItem>
-                  )) || (
-                    <>
-                      <SelectItem value="main">Main Clinic</SelectItem>
-                      <SelectItem value="satellite">Satellite Clinic</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          </div>          
           
           <div className="space-y-2">
             <Label>Reason for Visit</Label>
