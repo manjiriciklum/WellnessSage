@@ -35,8 +35,6 @@ interface DoctorListingProps {
   onShowOnMap?: (doctor: Doctor) => void;
 }
 
-const API_URL = 'http://localhost:5000/api';
-
 export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
@@ -70,16 +68,18 @@ export function DoctorListing({ specialty = 'all', onShowOnMap }: DoctorListingP
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { data: doctors, isLoading } = useQuery<Doctor[]>({
-    queryKey: ['doctors'],
-    queryFn: async () => {
-      const response = await fetch(`${API_URL}/doctors`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch doctors');
-      }
-      const data = await response.json();
-      return data as Doctor[];
+    queryKey: ['/api/doctors'],
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Consider data stale immediately
+    cacheTime: 0, // Don't cache the data
+    retry: 1,
+    onSuccess: (data) => {
+      console.log('Fetched doctors data:', data);
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error) => {
+      console.error('Error fetching doctors:', error);
+    }
   });
 
   // Get unique locations for filter dropdown - only include locations with doctors
