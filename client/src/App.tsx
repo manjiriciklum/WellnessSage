@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import HealthInsightsPage from "@/pages/health-insights";
+import MyHealthRecordsPage from "@/pages/my-health-records";
 import ConnectedDevicesPage from "@/pages/connected-devices";
 import WellnessPlansPage from "@/pages/wellness-plans";
 import FindDoctorPage from "@/pages/find-doctor";
@@ -26,6 +27,7 @@ function ProtectedDashboard() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/health-insights" component={HealthInsightsPage} />
+        <Route path="/my-health-records" component={MyHealthRecordsPage} />
         <Route path="/connected-devices" component={ConnectedDevicesPage} />
         <Route path="/wellness-plans" component={WellnessPlansPage} />
         <Route path="/find-doctor" component={FindDoctorPage} />

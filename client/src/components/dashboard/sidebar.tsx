@@ -9,6 +9,7 @@ import {
   Stethoscope,
   Bell,
   Settings,
+  LibraryBig,
   Menu,
   X,
   Brain
@@ -36,6 +37,11 @@ export function Sidebar({ className }: SidebarProps) {
       name: 'Health Insights',
       path: '/health-insights',
       icon: <Heart size={18} className="mr-3" />
+    },
+    {
+      name: 'My Health Records',
+      path: '/my-health-records',
+      icon: <LibraryBig size={18} className="mr-3" />
     },
     {
       name: 'Connected Devices',

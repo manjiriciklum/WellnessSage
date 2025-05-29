@@ -36,6 +36,11 @@ export function Header() {
               Health Insights
             </a>
           </Link>
+          <Link href="/my-health-records">
+            <a className="text-sm font-medium transition-colors hover:text-primary">
+              My Health Records
+            </a>
+          </Link>
           <Link href="/wellness-plans">
             <a className="text-sm font-medium transition-colors hover:text-primary">
               Wellness Plans
@@ -115,6 +120,11 @@ export function Header() {
               <Link href="/health-insights">
                 <a className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>
                   Health Insights
+                </a>
+              </Link>
+              <Link href="/my-health-records">
+                <a className="text-lg font-medium" onClick={() => setIsMenuOpen(false)}>
+                  My Health Records
                 </a>
               </Link>
               <Link href="/wellness-plans">

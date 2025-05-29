@@ -16,6 +16,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         return 'Dashboard';
       case '/health-insights':
         return 'Health Insights';
+      case '/my-health-records':
+        return 'My Health Records';
       case '/connected-devices':
         return 'Connected Devices';
       case '/wellness-plans':
