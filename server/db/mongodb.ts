@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { logAuditEvent } from '../security';
 
 // Initialize MongoDB connection URI
-let MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wellnesssage';
+let MONGODB_URI = process.env.MONGODB_ATLAS_URI || 'mongodb://localhost:27017/wellnesssage';
 
 // Remove dummy credentials setup for development
 // Always use local MongoDB in development if no URI is provided

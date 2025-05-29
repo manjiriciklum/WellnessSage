@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 // MongoDB connection string
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wellnesssage';
+const MONGODB_URI = process.env.MONGODB_ATLAS_URI || 'mongodb://localhost:27017/wellnesssage';
 
 // Define schemas
 const userSchema = new mongoose.Schema({
