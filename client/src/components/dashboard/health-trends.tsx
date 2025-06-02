@@ -64,15 +64,63 @@ export function HealthTrends() {
   });
   
   // Define colors and units for different metrics
-  const metricConfig: Record<string, {color: string, unit: string, name: string, icon: React.ReactNode}> = {
-    steps: { color: '#4f46e5', unit: 'steps', name: 'Steps', icon: <ActivityIcon size={16} /> },
-    calories: { color: '#f97316', unit: 'cal', name: 'Calories', icon: <FlameIcon size={16} /> },
-    activeMinutes: { color: '#22c55e', unit: 'mins', name: 'Active Minutes', icon: <ActivityIcon size={16} /> },
-    heartRate: { color: '#ef4444', unit: 'bpm', name: 'Heart Rate', icon: <HeartIcon size={16} /> },
-    sleepHours: { color: '#6366f1', unit: 'hours', name: 'Sleep Hours', icon: <MoonIcon size={16} /> },
-    sleepQuality: { color: '#8b5cf6', unit: '%', name: 'Sleep Quality', icon: <MoonIcon size={16} /> },
-    healthScore: { color: '#10b981', unit: '', name: 'Health Score', icon: <BarChart3Icon size={16} /> },
-    stressLevel: { color: '#f43f5e', unit: '', name: 'Stress Level', icon: <BatteryFullIcon size={16} /> }
+  const metricConfig: Record<string, {color: string, unit: string, name: string, icon: React.ReactNode, gradient: string}> = {
+    steps: { 
+      color: '#4f46e5', 
+      unit: 'steps', 
+      name: 'Steps', 
+      icon: <ActivityIcon size={16} />,
+      gradient: 'linear-gradient(to bottom, #4f46e5, #6366f1)'
+    },
+    calories: { 
+      color: '#f97316', 
+      unit: 'cal', 
+      name: 'Calories', 
+      icon: <FlameIcon size={16} />,
+      gradient: 'linear-gradient(to bottom, #f97316, #f97316)'
+    },
+    activeMinutes: { 
+      color: '#22c55e', 
+      unit: 'mins', 
+      name: 'Active Minutes', 
+      icon: <ActivityIcon size={16} />,
+      gradient: 'linear-gradient(to bottom, #22c55e, #22c55e)'
+    },
+    heartRate: { 
+      color: '#ef4444', 
+      unit: 'bpm', 
+      name: 'Heart Rate', 
+      icon: <HeartIcon size={16} />,
+      gradient: 'linear-gradient(to bottom, #ef4444, #f87171)'
+    },
+    sleepHours: { 
+      color: '#6366f1', 
+      unit: 'hours', 
+      name: 'Sleep Hours', 
+      icon: <MoonIcon size={16} />,
+      gradient: 'linear-gradient(to bottom, #6366f1, #818cf8)'
+    },
+    sleepQuality: { 
+      color: '#8b5cf6', 
+      unit: '%', 
+      name: 'Sleep Quality', 
+      icon: <MoonIcon size={16} />,
+      gradient: 'linear-gradient(to bottom, #8b5cf6, #a78bfa)'
+    },
+    healthScore: { 
+      color: '#10b981', 
+      unit: '', 
+      name: 'Health Score', 
+      icon: <BarChart3Icon size={16} />,
+      gradient: 'linear-gradient(to bottom, #10b981, #34d399)'
+    },
+    stressLevel: { 
+      color: '#f43f5e', 
+      unit: '', 
+      name: 'Stress Level', 
+      icon: <BatteryFullIcon size={16} />,
+      gradient: 'linear-gradient(to bottom, #f43f5e, #fb7185)'
+    }
   };
   
   // Choose chart type based on the metric
@@ -80,7 +128,12 @@ export function HealthTrends() {
   
   const renderChart = () => {
     // Improved margins for the chart to prevent label overlapping
-    const chartMargins = { top: 20, right: 30, left: 30, bottom: 20 };
+    const chartMargins = { 
+      top: 20, 
+      right: 60, 
+      left: 0, 
+      bottom: timePeriod === 'six-month' ? 20 : 20
+    };
 
     // Custom tooltip styles
     const tooltipStyle = {
@@ -96,6 +149,8 @@ export function HealthTrends() {
         <BarChart
           data={chartData}
           margin={chartMargins}
+          barGap={0}
+          barCategoryGap="20%"
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis 
@@ -103,6 +158,9 @@ export function HealthTrends() {
             tick={{ fontSize: 12 }}
             tickLine={{ stroke: '#e5e7eb' }}
             axisLine={{ stroke: '#e5e7eb' }}
+            angle={timePeriod === 'six-month' ? -45 : 0}
+            textAnchor={timePeriod === 'six-month' ? 'end' : 'middle'}
+            height={timePeriod === 'six-month' ? 60 : 30}
           />
           <YAxis 
             width={45}
@@ -122,10 +180,10 @@ export function HealthTrends() {
             type="monotone" 
             dataKey={selectedMetric} 
             fill={metricConfig[selectedMetric].color}
-            stroke={metricConfig[selectedMetric].color}
-            strokeWidth={2}
+            stroke={metricConfig[selectedMetric].gradient}
+            strokeWidth={timePeriod === 'six-month' ? 1 : 2}
             radius={[4, 4, 0, 0]}
-            barSize={30}
+            barSize={timePeriod === 'six-month' ? 5 : 25}
           />
         </BarChart>
       );
